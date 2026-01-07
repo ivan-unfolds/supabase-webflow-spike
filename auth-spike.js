@@ -1,12 +1,24 @@
 /**
  * Supabase + Webflow Auth Integration
  * Single drop-in script for authentication functionality
+ *
+ * IMPORTANT: This script requires Supabase to be loaded first via CDN
+ * Add this to Webflow BEFORE this script:
+ * <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  */
 
 console.log("[auth-spike] loaded");
 
-// Using unpkg CDN which has proper CORS headers for cross-origin loading
-import { createClient } from "https://unpkg.com/@supabase/supabase-js@2/+esm";
+// Check if Supabase is available
+if (typeof window.supabase === 'undefined') {
+  console.error("[auth-spike] ERROR: Supabase not loaded! Add Supabase CDN script before auth-spike.js");
+  console.error("Add this to Webflow before auth-spike.js:");
+  console.error('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>');
+  throw new Error("Supabase library not found");
+}
+
+// Use Supabase from global window object
+const { createClient } = window.supabase;
 
 // Configuration - make these configurable later
 const CONFIG = window.SB_CONFIG || {

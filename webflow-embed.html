@@ -1,0 +1,32 @@
+<!--
+  Add this to your Webflow site (in Project Settings → Custom Code → Head Code)
+  Or add to specific pages in Page Settings → Custom Code
+-->
+
+<!-- Step 1: Load Supabase from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Step 2: Load auth script from GitHub Pages -->
+<!-- Replace ivan-unfolds with your GitHub username -->
+<script src="https://ivan-unfolds.github.io/supabase-webflow-spike/auth-spike.js"></script>
+
+<!--
+  Alternative: With custom configuration
+  Use this if you want to override the default settings
+-->
+<!--
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.SB_CONFIG = {
+    url: "https://YOUR_PROJECT.supabase.co",
+    publishableKey: "YOUR_PUBLISHABLE_KEY",
+    redirects: {
+      afterLogin: "/dashboard",
+      afterSignup: "/welcome",
+      afterLogout: "/",
+      loginPage: "/login"
+    }
+  };
+</script>
+<script src="https://ivan-unfolds.github.io/supabase-webflow-spike/auth-spike.js"></script>
+-->

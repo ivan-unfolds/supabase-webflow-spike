@@ -26,14 +26,23 @@ const CONFIG = window.SB_CONFIG || {
 
 ### 3. Add to Webflow
 
-Add this to your Webflow site (either site-wide or specific pages):
+Add TWO scripts to your Webflow site (in this order):
+
+**Option 1: Site-wide (Recommended)**
+Go to Project Settings → Custom Code → Head Code and add:
 
 ```html
-<script type="module" src="https://YOUR_USERNAME.github.io/YOUR_REPO/auth-spike.js"></script>
+<!-- Load Supabase first -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Then load auth script -->
+<script src="https://YOUR_USERNAME.github.io/YOUR_REPO/auth-spike.js"></script>
 ```
 
-Or with configuration override:
+**Option 2: With configuration override**
 ```html
+<!-- Load Supabase first -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Configure settings -->
 <script>
   window.SB_CONFIG = {
     url: "https://YOUR_PROJECT.supabase.co",
@@ -46,8 +55,11 @@ Or with configuration override:
     }
   };
 </script>
-<script type="module" src="https://YOUR_USERNAME.github.io/YOUR_REPO/auth-spike.js"></script>
+<!-- Then load auth script -->
+<script src="https://YOUR_USERNAME.github.io/YOUR_REPO/auth-spike.js"></script>
 ```
+
+**Important:** The order matters! Supabase must load before auth-spike.js
 
 ## Required Webflow Page Structure
 
