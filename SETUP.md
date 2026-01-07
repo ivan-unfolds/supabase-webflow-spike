@@ -8,10 +8,12 @@ Edit `auth-spike.js` and replace these values:
 ```javascript
 const CONFIG = window.SB_CONFIG || {
   url: "https://YOUR_PROJECT.supabase.co", // Your Supabase project URL
-  anonKey: "YOUR_ANON_KEY", // Your Supabase anon key
+  publishableKey: "sb_publishable_YOUR_KEY", // Your Supabase publishable key
   // ... rest of config
 };
 ```
+
+**Note:** Use the new `sb_publishable_...` key format if available. If you only have the legacy `anon` key (starts with `eyJ...`), that works too - both are safe for client-side use.
 
 ### 2. Deploy to GitHub Pages
 
@@ -35,7 +37,7 @@ Or with configuration override:
 <script>
   window.SB_CONFIG = {
     url: "https://YOUR_PROJECT.supabase.co",
-    anonKey: "YOUR_ANON_KEY",
+    publishableKey: "sb_publishable_YOUR_KEY",
     redirects: {
       afterLogin: "/dashboard",
       afterSignup: "/welcome",

@@ -8,8 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Configuration - make these configurable later
 const CONFIG = window.SB_CONFIG || {
   url: "https://pthlhifuddrtiegtsjxn.supabase.co", // Replace with your Supabase URL
-  anonKey:
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB0aGxoaWZ1ZGRydGllZ3RzanhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMjUxNTUsImV4cCI6MjA4MjcwMTE1NX0.BI6xAH1fuw9bRo2Ho3q3GRdTzHVG5zmPWFRUbvifMBc", // Replace with your anon key
+  publishableKey: "sb_publishable_NAakNKy3ON23zw3gqG9CtQ_nLcm_Q70", // Your Supabase publishable key
   redirects: {
     afterLogin: "/account",
     afterSignup: "/account",
@@ -19,7 +18,8 @@ const CONFIG = window.SB_CONFIG || {
 };
 
 // Initialize Supabase client
-const supabase = createClient(CONFIG.url, CONFIG.anonKey);
+// Note: publishableKey works the same as anonKey - both are safe for client-side use
+const supabase = createClient(CONFIG.url, CONFIG.publishableKey);
 
 // Utility: Check if user is authenticated and redirect if not
 async function requireAuthOrRedirect(redirectTo = CONFIG.redirects.loginPage) {
@@ -391,6 +391,6 @@ supabase.auth.onAuthStateChange((event, session) => {
 console.log("Supabase auth script loaded and initialized");
 console.log("Config:", {
   url: CONFIG.url,
-  hasKey: !!CONFIG.anonKey,
+  hasKey: !!CONFIG.publishableKey,
   redirects: CONFIG.redirects,
 });
