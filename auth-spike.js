@@ -32,15 +32,15 @@ const CONFIG = window.SB_CONFIG || {
   },
 };
 
-// Initialize Supabase client
+// Initialize Supabase client with unique variable name to avoid conflicts
 // Note: publishableKey works the same as anonKey - both are safe for client-side use
-const supabase = createClient(CONFIG.url, CONFIG.publishableKey);
+const supabaseClient = createClient(CONFIG.url, CONFIG.publishableKey);
 
 // Utility: Check if user is authenticated and redirect if not
 async function requireAuthOrRedirect(redirectTo = CONFIG.redirects.loginPage) {
   const {
     data: { session },
-  } = await supabase.auth.getSession();
+  } = await supabaseClientClient.auth.getSession();
   if (!session) {
     window.location.href = redirectTo;
     return null;
@@ -79,7 +79,7 @@ if (signupForm) {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabaseClient.auth.signUp({
         email,
         password,
       });
@@ -118,7 +118,7 @@ if (loginForm) {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabaseClient.auth.signInWithPassword({
         email,
         password,
       });
@@ -141,7 +141,7 @@ if (logoutBtn) {
 
   logoutBtn.addEventListener("click", async () => {
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabaseClient.auth.signOut();
       if (error) throw error;
 
       window.location.href = CONFIG.redirects.afterLogout;
@@ -169,7 +169,7 @@ if (resetForm) {
     }
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/update-password`,
       });
 
@@ -198,7 +198,7 @@ async function handlePasswordRecovery() {
   console.log("Recovery code found, exchanging for session");
 
   try {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabaseClient.auth.exchangeCodeForSession(code);
     if (error) {
       console.warn("Code exchange failed:", error.message);
       return false;
@@ -244,7 +244,7 @@ if (updatePwForm) {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { error } = await supabaseClient.auth.updateUser({
         password: newPassword,
       });
 
@@ -255,7 +255,7 @@ if (updatePwForm) {
       );
 
       // Sign out and redirect to login
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
       setTimeout(() => {
         window.location.href = CONFIG.redirects.loginPage;
       }, 2000);
@@ -281,7 +281,7 @@ if (profileForm) {
 
     try {
       // Check if profile exists
-      let { data: profile, error: fetchError } = await supabase
+      let { data: profile, error: fetchError } = await supabaseClient
         .from("profiles")
         .select("*")
         .eq("id", user.id)
@@ -295,7 +295,7 @@ if (profileForm) {
       if (!profile) {
         console.log("Creating new profile for user");
 
-        const { data: newProfile, error: insertError } = await supabase
+        const { data: newProfile, error: insertError } = await supabaseClient
           .from("profiles")
           .insert({
             id: user.id,
@@ -334,7 +334,7 @@ if (profileForm) {
         const full_name = document.querySelector("#fullName")?.value || "";
 
         try {
-          const { error } = await supabase
+          const { error } = await supabaseClient
             .from("profiles")
             .update({
               full_name,
@@ -382,7 +382,7 @@ if (protectedMarkers.length > 0) {
 // ====================
 // GLOBAL AUTH STATE LISTENER
 // ====================
-supabase.auth.onAuthStateChange((event, session) => {
+supabaseClient.auth.onAuthStateChange((event, session) => {
   console.log("Auth state changed:", event);
 
   // Handle auth events
