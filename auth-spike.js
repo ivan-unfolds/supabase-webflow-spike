@@ -3,6 +3,8 @@
  * Single drop-in script for authentication functionality
  */
 
+console.log("[auth-spike] loaded");
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Configuration - make these configurable later
