@@ -5,7 +5,8 @@
 
 console.log("[auth-spike] loaded");
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Using unpkg CDN which has proper CORS headers for cross-origin loading
+import { createClient } from "https://unpkg.com/@supabase/supabase-js@2/+esm";
 
 // Configuration - make these configurable later
 const CONFIG = window.SB_CONFIG || {
