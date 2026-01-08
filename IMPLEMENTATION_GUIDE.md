@@ -150,6 +150,22 @@ const supabaseClient = createClient(CONFIG.url, CONFIG.publishableKey);
    - Added error checking for missing Supabase library
    - Clear error messages save debugging time
 
+6. **Webflow form handling conflicts**
+   - Webflow shows "Passwords cannot be submitted" warning with password fields
+   - Solution: Use capturing phase with `stopPropagation()`
+   - Add `true` parameter to addEventListener and call `e.stopPropagation()`
+   - This intercepts the submit before Webflow's handler runs
+
+7. **Critical typo caused profile creation failure**
+   - Had `supabaseClientClient` instead of `supabaseClient` in requireAuthOrRedirect
+   - This broke profile creation, logout, and any auth-dependent features
+   - Always check console errors carefully for typos
+
+8. **Version tracking for cache-busting**
+   - Added BUILD_VERSION timestamp that shows when code was deployed
+   - Automated with Husky pre-commit hook to update on every commit
+   - Helps verify if Webflow is loading latest version vs cached
+
 ---
 
 ## Step 4 — Profile Create/Update + RLS Proof (60-120 mins)
@@ -199,6 +215,34 @@ The script automatically:
 
 ---
 
+## Webflow-Specific Issues & Solutions
+
+### The "Passwords cannot be submitted" Dialog
+**Problem:** Webflow intercepts form submissions with password fields and shows a warning dialog.
+
+**Solution:** Use event capturing phase to intercept before Webflow:
+```javascript
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  e.stopPropagation(); // Stops Webflow's handler
+  // Your code here
+}, true); // <-- The 'true' enables capturing phase
+```
+
+### Form Element IDs Must Be Exact
+Webflow doesn't automatically generate IDs. You must manually set these in Webflow Designer:
+- Select the form/input element
+- Go to Element Settings (gear icon)
+- Set the ID field exactly as specified (e.g., `signupForm`, `loginEmail`)
+- IDs are case-sensitive!
+
+### Script Loading Order
+**Critical:** Must load in this exact order in Webflow's Head Code:
+1. Supabase CDN first
+2. Your auth script second
+
+If reversed, you'll get "Supabase library not found" error.
+
 ## Critical Implementation Notes
 
 ### What Actually Works in Webflow:
@@ -247,6 +291,47 @@ The main time sink was debugging CORS/module loading issues in Step 3. With this
 
 ---
 
+## Automation Setup
+
+### Automatic Version Timestamps with Husky
+To track deployments and catch cache issues:
+
+1. **Install dependencies:**
+   ```bash
+   npm install --save-dev husky
+   npx husky init
+   ```
+
+2. **The pre-commit hook** (already configured in `.husky/pre-commit`):
+   - Runs `update-version.sh` automatically
+   - Updates BUILD_VERSION timestamp in auth-spike.js
+   - Stages the change for commit
+
+3. **Result:** Every commit shows exactly when it was made in the console log
+
+## Debugging Checklist
+
+When things aren't working:
+
+1. **Check console for the version timestamp**
+   - Old timestamp = cached version (hard refresh or clear cache)
+
+2. **Check for typos in variable names**
+   - Especially `supabaseClient` (we had `supabaseClientClient` typo)
+
+3. **Verify IDs in Webflow match exactly**
+   - Case-sensitive: `loginForm` ≠ `loginform`
+
+4. **Check script order in Webflow**
+   - Supabase CDN must be BEFORE auth-spike.js
+
+5. **Test in incognito/private window**
+   - Eliminates cache/cookie issues
+
+6. **Check Supabase Auth settings**
+   - Redirect URLs must include your Webflow domains
+   - Both `.webflow.io` and custom domains
+
 ## Next Steps for Production
 
 1. Replace `alert()` with proper toast notifications
@@ -256,3 +341,5 @@ The main time sink was debugging CORS/module loading issues in Step 3. With this
 5. Consider email verification flow
 6. Set up proper GitHub Actions for automated deployment
 7. Create Webflow template with all required pages/forms pre-built
+8. Add rate limiting to prevent abuse
+9. Implement proper logging/monitoring
