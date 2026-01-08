@@ -7,7 +7,13 @@
  * <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
  */
 
-console.log("[auth-spike] loaded");
+// Log with UK timestamp for cache-busting verification
+const ukTime = new Date().toLocaleString('en-GB', {
+  timeZone: 'Europe/London',
+  dateStyle: 'short',
+  timeStyle: 'medium'
+});
+console.log(`[auth-spike] loaded at ${ukTime} (UK time)`);
 
 // Check if Supabase is available
 if (typeof window.supabase === 'undefined') {
