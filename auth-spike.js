@@ -69,6 +69,7 @@ if (signupForm) {
 
   signupForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevents Webflow's handler from running
 
     const email = document.querySelector("#signupEmail")?.value.trim();
     const password = document.querySelector("#signupPassword")?.value;
@@ -96,7 +97,7 @@ if (signupForm) {
     } catch (error) {
       showFeedback(error.message, true);
     }
-  });
+  }, true); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -108,6 +109,7 @@ if (loginForm) {
 
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevents Webflow's handler from running
 
     const email = document.querySelector("#loginEmail")?.value.trim();
     const password = document.querySelector("#loginPassword")?.value;
@@ -129,7 +131,7 @@ if (loginForm) {
     } catch (error) {
       showFeedback(error.message, true);
     }
-  });
+  }, true); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -160,6 +162,7 @@ if (resetForm) {
 
   resetForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevents Webflow's handler from running
 
     const email = document.querySelector("#resetEmail")?.value.trim();
 
@@ -179,7 +182,7 @@ if (resetForm) {
     } catch (error) {
       showFeedback(error.message, true);
     }
-  });
+  }, true); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -228,6 +231,7 @@ if (updatePwForm) {
 
   updatePwForm.addEventListener("submit", async (e) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevents Webflow's handler from running
 
     const newPassword = document.querySelector("#newPassword")?.value;
     const confirmPassword = document.querySelector("#confirmPassword")?.value;
@@ -262,7 +266,7 @@ if (updatePwForm) {
     } catch (error) {
       showFeedback(error.message, true);
     }
-  });
+  }, true); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -330,6 +334,7 @@ if (profileForm) {
       // Handle form submission
       profileForm.addEventListener("submit", async (e) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevents Webflow's handler from running
 
         const full_name = document.querySelector("#fullName")?.value || "";
 
@@ -348,7 +353,7 @@ if (profileForm) {
         } catch (error) {
           showFeedback(error.message, true);
         }
-      });
+      }, true); // Use capturing phase to intercept before Webflow
     } catch (error) {
       console.error("Profile initialization error:", error);
       showFeedback("Error loading profile", true);
