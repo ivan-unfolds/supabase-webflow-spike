@@ -40,7 +40,7 @@ const supabaseClient = createClient(CONFIG.url, CONFIG.publishableKey);
 async function requireAuthOrRedirect(redirectTo = CONFIG.redirects.loginPage) {
   const {
     data: { session },
-  } = await supabaseClientClient.auth.getSession();
+  } = await supabaseClient.auth.getSession();
   if (!session) {
     window.location.href = redirectTo;
     return null;
