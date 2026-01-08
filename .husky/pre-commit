@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Update the build version timestamp
+./update-version.sh
+
+# Stage the updated file
+git add auth-spike.js
+
+echo "✅ Build version updated automatically"

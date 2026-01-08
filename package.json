@@ -1,0 +1,24 @@
+{
+  "name": "supabase-webflow-spike",
+  "version": "1.0.0",
+  "main": "auth-spike.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivan-unfolds/supabase-webflow-spike.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ivan-unfolds/supabase-webflow-spike/issues"
+  },
+  "homepage": "https://github.com/ivan-unfolds/supabase-webflow-spike#readme",
+  "description": "",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

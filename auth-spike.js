@@ -8,7 +8,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "08/01/2026, 13:27:08"; // Last updated
+const BUILD_VERSION = "08/01/2026, 13:42:21"; // Last updated
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // Check if Supabase is available
