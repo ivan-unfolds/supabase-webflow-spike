@@ -8,14 +8,18 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "08/01/2026, 13:45:14"; // Last updated
+const BUILD_VERSION = "15/01/2026, 15:05:51"; // Last updated
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // Check if Supabase is available
-if (typeof window.supabase === 'undefined') {
-  console.error("[auth-spike] ERROR: Supabase not loaded! Add Supabase CDN script before auth-spike.js");
+if (typeof window.supabase === "undefined") {
+  console.error(
+    "[auth-spike] ERROR: Supabase not loaded! Add Supabase CDN script before auth-spike.js"
+  );
   console.error("Add this to Webflow before auth-spike.js:");
-  console.error('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>');
+  console.error(
+    '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
+  );
   throw new Error("Supabase library not found");
 }
 
@@ -69,37 +73,41 @@ const signupForm = document.querySelector("#signupForm");
 if (signupForm) {
   console.log("Signup form detected, attaching handler");
 
-  signupForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevents Webflow's handler from running
+  signupForm.addEventListener(
+    "submit",
+    async (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // Prevents Webflow's handler from running
 
-    const email = document.querySelector("#signupEmail")?.value.trim();
-    const password = document.querySelector("#signupPassword")?.value;
+      const email = document.querySelector("#signupEmail")?.value.trim();
+      const password = document.querySelector("#signupPassword")?.value;
 
-    if (!email || !password) {
-      showFeedback("Please fill in all fields", true);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // If email confirmation is required, show different message
-      if (data.user && !data.session) {
-        showFeedback("Check your email to confirm your account!");
-      } else {
-        // Auto-login successful
-        window.location.href = CONFIG.redirects.afterSignup;
+      if (!email || !password) {
+        showFeedback("Please fill in all fields", true);
+        return;
       }
-    } catch (error) {
-      showFeedback(error.message, true);
-    }
-  }, true); // Use capturing phase to intercept before Webflow
+
+      try {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        // If email confirmation is required, show different message
+        if (data.user && !data.session) {
+          showFeedback("Check your email to confirm your account!");
+        } else {
+          // Auto-login successful
+          window.location.href = CONFIG.redirects.afterSignup;
+        }
+      } catch (error) {
+        showFeedback(error.message, true);
+      }
+    },
+    true
+  ); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -109,31 +117,35 @@ const loginForm = document.querySelector("#loginForm");
 if (loginForm) {
   console.log("Login form detected, attaching handler");
 
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevents Webflow's handler from running
+  loginForm.addEventListener(
+    "submit",
+    async (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // Prevents Webflow's handler from running
 
-    const email = document.querySelector("#loginEmail")?.value.trim();
-    const password = document.querySelector("#loginPassword")?.value;
+      const email = document.querySelector("#loginEmail")?.value.trim();
+      const password = document.querySelector("#loginPassword")?.value;
 
-    if (!email || !password) {
-      showFeedback("Please fill in all fields", true);
-      return;
-    }
+      if (!email || !password) {
+        showFeedback("Please fill in all fields", true);
+        return;
+      }
 
-    try {
-      const { error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password,
-      });
+      try {
+        const { error } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      window.location.href = CONFIG.redirects.afterLogin;
-    } catch (error) {
-      showFeedback(error.message, true);
-    }
-  }, true); // Use capturing phase to intercept before Webflow
+        window.location.href = CONFIG.redirects.afterLogin;
+      } catch (error) {
+        showFeedback(error.message, true);
+      }
+    },
+    true
+  ); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -162,29 +174,36 @@ const resetForm = document.querySelector("#resetForm");
 if (resetForm) {
   console.log("Password reset form detected, attaching handler");
 
-  resetForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevents Webflow's handler from running
+  resetForm.addEventListener(
+    "submit",
+    async (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // Prevents Webflow's handler from running
 
-    const email = document.querySelector("#resetEmail")?.value.trim();
+      const email = document.querySelector("#resetEmail")?.value.trim();
 
-    if (!email) {
-      showFeedback("Please enter your email", true);
-      return;
-    }
+      if (!email) {
+        showFeedback("Please enter your email", true);
+        return;
+      }
 
-    try {
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
+      try {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(
+          email,
+          {
+            redirectTo: `${window.location.origin}/update-password`,
+          }
+        );
 
-      if (error) throw error;
+        if (error) throw error;
 
-      showFeedback("Check your email for the password reset link");
-    } catch (error) {
-      showFeedback(error.message, true);
-    }
-  }, true); // Use capturing phase to intercept before Webflow
+        showFeedback("Check your email for the password reset link");
+      } catch (error) {
+        showFeedback(error.message, true);
+      }
+    },
+    true
+  ); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -231,44 +250,48 @@ if (updatePwForm) {
     }
   });
 
-  updatePwForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    e.stopPropagation(); // Prevents Webflow's handler from running
+  updatePwForm.addEventListener(
+    "submit",
+    async (e) => {
+      e.preventDefault();
+      e.stopPropagation(); // Prevents Webflow's handler from running
 
-    const newPassword = document.querySelector("#newPassword")?.value;
-    const confirmPassword = document.querySelector("#confirmPassword")?.value;
+      const newPassword = document.querySelector("#newPassword")?.value;
+      const confirmPassword = document.querySelector("#confirmPassword")?.value;
 
-    if (!newPassword) {
-      showFeedback("Please enter a new password", true);
-      return;
-    }
+      if (!newPassword) {
+        showFeedback("Please enter a new password", true);
+        return;
+      }
 
-    // Optional: Check password confirmation if field exists
-    if (confirmPassword && newPassword !== confirmPassword) {
-      showFeedback("Passwords do not match", true);
-      return;
-    }
+      // Optional: Check password confirmation if field exists
+      if (confirmPassword && newPassword !== confirmPassword) {
+        showFeedback("Passwords do not match", true);
+        return;
+      }
 
-    try {
-      const { error } = await supabaseClient.auth.updateUser({
-        password: newPassword,
-      });
+      try {
+        const { error } = await supabaseClient.auth.updateUser({
+          password: newPassword,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      showFeedback(
-        "Password updated successfully! Please log in with your new password."
-      );
+        showFeedback(
+          "Password updated successfully! Please log in with your new password."
+        );
 
-      // Sign out and redirect to login
-      await supabaseClient.auth.signOut();
-      setTimeout(() => {
-        window.location.href = CONFIG.redirects.loginPage;
-      }, 2000);
-    } catch (error) {
-      showFeedback(error.message, true);
-    }
-  }, true); // Use capturing phase to intercept before Webflow
+        // Sign out and redirect to login
+        await supabaseClient.auth.signOut();
+        setTimeout(() => {
+          window.location.href = CONFIG.redirects.loginPage;
+        }, 2000);
+      } catch (error) {
+        showFeedback(error.message, true);
+      }
+    },
+    true
+  ); // Use capturing phase to intercept before Webflow
 }
 
 // ====================
@@ -334,28 +357,32 @@ if (profileForm) {
       }
 
       // Handle form submission
-      profileForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        e.stopPropagation(); // Prevents Webflow's handler from running
+      profileForm.addEventListener(
+        "submit",
+        async (e) => {
+          e.preventDefault();
+          e.stopPropagation(); // Prevents Webflow's handler from running
 
-        const full_name = document.querySelector("#fullName")?.value || "";
+          const full_name = document.querySelector("#fullName")?.value || "";
 
-        try {
-          const { error } = await supabaseClient
-            .from("profiles")
-            .update({
-              full_name,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", user.id);
+          try {
+            const { error } = await supabaseClient
+              .from("profiles")
+              .update({
+                full_name,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", user.id);
 
-          if (error) throw error;
+            if (error) throw error;
 
-          showFeedback("Profile updated successfully!");
-        } catch (error) {
-          showFeedback(error.message, true);
-        }
-      }, true); // Use capturing phase to intercept before Webflow
+            showFeedback("Profile updated successfully!");
+          } catch (error) {
+            showFeedback(error.message, true);
+          }
+        },
+        true
+      ); // Use capturing phase to intercept before Webflow
     } catch (error) {
       console.error("Profile initialization error:", error);
       showFeedback("Error loading profile", true);
@@ -416,3 +443,45 @@ console.log("Config:", {
   hasKey: !!CONFIG.publishableKey,
   redirects: CONFIG.redirects,
 });
+
+function getCourseSlugFromDom() {
+  const el = document.getElementById("courseSlug");
+  return el?.textContent?.trim() || null;
+}
+
+async function handleCoursePageGating() {
+  const courseSlug = getCourseSlugFromDom();
+  if (!courseSlug) return; // not a course page
+
+  const { data: sessionRes } = await supabaseClient.auth.getSession();
+  const session = sessionRes?.session;
+
+  if (!session) {
+    console.log("[auth-spike] no session, redirecting to /login");
+    window.location.href = "/login";
+    return;
+  }
+
+  const userId = session.user.id;
+
+  const { data, error } = await supabaseClient
+    .from("entitlements")
+    .select("course_slug")
+    .eq("user_id", userId)
+    .eq("course_slug", courseSlug)
+    .limit(1);
+
+  if (error) {
+    console.error("[auth-spike] entitlement check failed", error);
+    window.location.href = "/no-access";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    console.log("[auth-spike] no entitlement for", courseSlug);
+    window.location.href = "/no-access";
+    return;
+  }
+
+  console.log("[auth-spike] entitlement OK for", courseSlug);
+}
