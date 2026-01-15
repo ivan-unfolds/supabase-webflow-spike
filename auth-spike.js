@@ -8,7 +8,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "15/01/2026, 15:05:51"; // Last updated
+const BUILD_VERSION = "15/01/2026, 15:09:52"; // Last updated
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // Check if Supabase is available
@@ -485,3 +485,9 @@ async function handleCoursePageGating() {
 
   console.log("[auth-spike] entitlement OK for", courseSlug);
 }
+
+// ====================
+// INITIALIZE COURSE PAGE GATING
+// ====================
+// Run course page gating check after Supabase is initialized
+handleCoursePageGating();
