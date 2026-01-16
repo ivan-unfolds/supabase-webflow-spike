@@ -8,8 +8,12 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "15/01/2026, 15:09:52"; // Last updated
+const BUILD_VERSION = "16/01/2026, 16:19:19"; // Last updated
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
+
+function hasDebugFlag() {
+  return new URLSearchParams(window.location.search).has("debug");
+}
 
 // Check if Supabase is available
 if (typeof window.supabase === "undefined") {
@@ -450,6 +454,10 @@ function getCourseSlugFromDom() {
 }
 
 async function handleCoursePageGating() {
+  if (hasDebugFlag()) {
+    console.log("[auth-spike] gating bypassed via ?debug");
+    return;
+  }
   const courseSlug = getCourseSlugFromDom();
   if (!courseSlug) return; // not a course page
 
