@@ -20,7 +20,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "19/01/2026, 15:03:17"; // Last updated
+const BUILD_VERSION = "19/01/2026, 15:14:21"; // Last updated
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -582,13 +582,15 @@ async function populateAccountDemo() {
       return;
     }
 
-    // Build entitlements display - simplified since we only have course_slug
+    // Build entitlements display with links to courses
+    const baseUrl = `${window.location.origin}/courses/`;
     entitlementsEl.innerHTML = `
       <ul class="entitlements-list">
         ${ents
           .map((e) => {
+            const courseUrl = `${baseUrl}${e.course_slug}`;
             return `<li>
-              <strong>${e.course_slug}</strong>
+              <a href="${courseUrl}"><strong>${e.course_slug}</strong></a>
               <span class="status-active">active</span>
             </li>`;
           })
