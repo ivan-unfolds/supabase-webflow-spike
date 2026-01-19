@@ -332,14 +332,90 @@ When things aren't working:
    - Redirect URLs must include your Webflow domains
    - Both `.webflow.io` and custom domains
 
+## Phase 1: Course-Gated Content + Account Pages
+
+### Account Page Implementation
+Added dynamic data population for `/account` pages to show Supabase data alongside Webflow CMS:
+
+**Required Webflow Elements:**
+- `[data-user-email]` - Shows logged-in user's email
+- `#profileFullName` - Displays full name from profiles table
+- `#entitlementsList` - Container for course entitlements
+- `#debugContext` - Optional debug info (shows with ?debug)
+
+**Key Implementation Details:**
+1. **Conditional Alerts** - Added `CONFIG.enableAlerts` flag to disable popups during demos
+2. **Entitlements Display** - Shows course access with status indicators
+3. **Debug Mode** - Append `?debug` to URL to see additional context
+4. **Graceful Fallbacks** - Shows helpful messages when data is missing
+
+### Code Organization Improvements
+As the script grew to 600+ lines, reorganized into clear sections:
+1. Configuration & Initialization
+2. Utility Functions
+3. Auth Form Handlers
+4. Profile Management
+5. Protected Page Gating
+6. Course Page Entitlement Checking
+7. Account Page Data Population
+8. Global Auth State Listener
+9. Initialization Calls
+
+### Architecture Assessment
+
+**For a spike, the single-file approach remains appropriate because:**
+- Easy to deploy and test
+- Single script tag in Webflow
+- No build process needed
+- Fast iteration cycles
+
+**When to refactor to modules:**
+- When adding payment integration
+- When implementing progress tracking
+- If file exceeds 1000 lines
+- For production deployment
+
+### Lessons Learned - Phase 1
+
+1. **Demo Polish Matters**
+   - Console logs > alerts for screencasts
+   - Clear status messages help tell the story
+   - Debug info should be hidden by default
+
+2. **Webflow Element IDs**
+   - Use semantic IDs that describe purpose
+   - Document required IDs clearly
+   - Consider prefixing (sb-user-email, sb-entitlements)
+
+3. **Data Population Strategy**
+   - Check page path before running queries
+   - Use conditional rendering based on available elements
+   - Provide fallback content for empty states
+
+4. **Code Growth Management**
+   - Table of contents helps navigation
+   - Clear section headers improve maintainability
+   - Consider extraction points early
+
 ## Next Steps for Production
 
-1. Replace `alert()` with proper toast notifications
-2. Add loading states during API calls
-3. Implement better error handling UI
-4. Add password strength validation
-5. Consider email verification flow
-6. Set up proper GitHub Actions for automated deployment
-7. Create Webflow template with all required pages/forms pre-built
-8. Add rate limiting to prevent abuse
-9. Implement proper logging/monitoring
+1. **Immediate (for demo):**
+   - Ensure test user has entitlements seeded
+   - Polish account page CSS in Webflow
+   - Test full user journey in incognito
+
+2. **Short-term improvements:**
+   - Replace inline HTML with template functions
+   - Add loading spinners for async operations
+   - Implement retry logic for failed requests
+
+3. **Medium-term refactoring:**
+   - Extract form handling into reusable function
+   - Create separate config file
+   - Add TypeScript definitions
+
+4. **Long-term architecture:**
+   - Module-based structure with build process
+   - Separate concerns (auth, profile, entitlements)
+   - Unit tests for critical paths
+   - Error tracking/monitoring integration

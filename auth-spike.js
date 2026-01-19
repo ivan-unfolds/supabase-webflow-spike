@@ -5,11 +5,27 @@
  * IMPORTANT: This script requires Supabase to be loaded first via CDN
  * Add this to Webflow BEFORE this script:
  * <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ *
+ * TABLE OF CONTENTS:
+ * ==================
+ * 1. Configuration & Initialization
+ * 2. Utility Functions
+ * 3. Auth Form Handlers (Signup, Login, Logout, Password)
+ * 4. Profile Management
+ * 5. Protected Page Gating
+ * 6. Course Page Entitlement Checking
+ * 7. Account Page Data Population
+ * 8. Global Auth State Listener
+ * 9. Initialization Calls
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "16/01/2026, 16:19:19"; // Last updated
+const BUILD_VERSION = "19/01/2026, 14:54:58"; // Last updated
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
+
+// ============================================================================
+// 1. CONFIGURATION & INITIALIZATION
+// ============================================================================
 
 function hasDebugFlag() {
   return new URLSearchParams(window.location.search).has("debug");
@@ -46,6 +62,10 @@ const CONFIG = window.SB_CONFIG || {
 // Note: publishableKey works the same as anonKey - both are safe for client-side use
 const supabaseClient = createClient(CONFIG.url, CONFIG.publishableKey);
 
+// ============================================================================
+// 2. UTILITY FUNCTIONS
+// ============================================================================
+
 // Utility: Check if user is authenticated and redirect if not
 async function requireAuthOrRedirect(redirectTo = CONFIG.redirects.loginPage) {
   const {
@@ -60,19 +80,26 @@ async function requireAuthOrRedirect(redirectTo = CONFIG.redirects.loginPage) {
 
 // Utility: Show user feedback
 function showFeedback(message, isError = false) {
-  // For spike, just use alert. In production, replace with better UX
+  // For demo/Loom recording: use console only to avoid popups
+  // Set ENABLE_ALERTS=true in CONFIG to re-enable alerts
+  const useAlerts = CONFIG.enableAlerts || false;
+
   if (isError) {
-    console.error(message);
-    alert(`Error: ${message}`);
+    console.error(`[auth-spike] Error: ${message}`);
+    if (useAlerts) alert(`Error: ${message}`);
   } else {
-    console.log(message);
-    alert(message);
+    console.log(`[auth-spike] ${message}`);
+    if (useAlerts) alert(message);
   }
 }
 
-// ====================
+// ============================================================================
+// 3. AUTH FORM HANDLERS
+// ============================================================================
+
+// --------------------
 // SIGNUP HANDLER
-// ====================
+// --------------------
 const signupForm = document.querySelector("#signupForm");
 if (signupForm) {
   console.log("Signup form detected, attaching handler");
@@ -114,9 +141,9 @@ if (signupForm) {
   ); // Use capturing phase to intercept before Webflow
 }
 
-// ====================
+// --------------------
 // LOGIN HANDLER
-// ====================
+// --------------------
 const loginForm = document.querySelector("#loginForm");
 if (loginForm) {
   console.log("Login form detected, attaching handler");
@@ -152,9 +179,9 @@ if (loginForm) {
   ); // Use capturing phase to intercept before Webflow
 }
 
-// ====================
+// --------------------
 // LOGOUT HANDLER
-// ====================
+// --------------------
 const logoutBtn = document.querySelector("#logoutBtn");
 if (logoutBtn) {
   console.log("Logout button detected, attaching handler");
@@ -171,9 +198,9 @@ if (logoutBtn) {
   });
 }
 
-// ====================
+// --------------------
 // PASSWORD RESET REQUEST
-// ====================
+// --------------------
 const resetForm = document.querySelector("#resetForm");
 if (resetForm) {
   console.log("Password reset form detected, attaching handler");
@@ -210,9 +237,9 @@ if (resetForm) {
   ); // Use capturing phase to intercept before Webflow
 }
 
-// ====================
+// --------------------
 // PASSWORD UPDATE (after email link)
-// ====================
+// --------------------
 async function handlePasswordRecovery() {
   // Check if we have a recovery code in the URL
   const url = new URL(window.location.href);
@@ -298,9 +325,9 @@ if (updatePwForm) {
   ); // Use capturing phase to intercept before Webflow
 }
 
-// ====================
-// PROFILE MANAGEMENT
-// ====================
+// ============================================================================
+// 4. PROFILE MANAGEMENT
+// ============================================================================
 const profileForm = document.querySelector("#profileForm");
 if (profileForm) {
   console.log("Profile form detected, loading profile");
@@ -394,9 +421,9 @@ if (profileForm) {
   })();
 }
 
-// ====================
-// PROTECTED PAGE GATING
-// ====================
+// ============================================================================
+// 5. PROTECTED PAGE GATING
+// ============================================================================
 // Check for protected page markers
 const protectedMarkers = document.querySelectorAll("[data-protected='true']");
 if (protectedMarkers.length > 0) {
@@ -417,9 +444,9 @@ if (protectedMarkers.length > 0) {
   })();
 }
 
-// ====================
-// GLOBAL AUTH STATE LISTENER
-// ====================
+// ============================================================================
+// 8. GLOBAL AUTH STATE LISTENER
+// ============================================================================
 supabaseClient.auth.onAuthStateChange((event, session) => {
   console.log("Auth state changed:", event);
 
@@ -440,13 +467,9 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// Log initialization
-console.log("Supabase auth script loaded and initialized");
-console.log("Config:", {
-  url: CONFIG.url,
-  hasKey: !!CONFIG.publishableKey,
-  redirects: CONFIG.redirects,
-});
+// ============================================================================
+// 6. COURSE PAGE ENTITLEMENT CHECKING
+// ============================================================================
 
 function getCourseSlugFromDom() {
   const el = document.getElementById("courseSlug");
@@ -494,8 +517,113 @@ async function handleCoursePageGating() {
   console.log("[auth-spike] entitlement OK for", courseSlug);
 }
 
-// ====================
-// INITIALIZE COURSE PAGE GATING
-// ====================
-// Run course page gating check after Supabase is initialized
+// ============================================================================
+// 7. ACCOUNT PAGE DATA POPULATION
+// ============================================================================
+async function populateAccountDemo() {
+  // Only run on /account page
+  if (!window.location.pathname.startsWith("/account")) return;
+
+  console.log("[auth-spike] Populating account page data");
+
+  const session = await requireAuthOrRedirect();
+  if (!session) return;
+
+  const user = session.user;
+
+  // 1) Email (already supported via [data-user-email] on protected pages)
+  const userEmailEl = document.querySelector("[data-user-email]");
+  if (userEmailEl) {
+    userEmailEl.textContent = user.email;
+    console.log("[auth-spike] Set user email display");
+  }
+
+  // 2) Profile full name from Supabase
+  const fullNameEl = document.getElementById("profileFullName");
+  if (fullNameEl) {
+    const { data: profile, error } = await supabaseClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!error && profile?.full_name) {
+      fullNameEl.textContent = profile.full_name;
+      console.log("[auth-spike] Set profile full name:", profile.full_name);
+    } else {
+      fullNameEl.textContent = "(name not set yet)";
+      console.log("[auth-spike] No profile name found");
+    }
+  }
+
+  // 3) Entitlements list (course-level)
+  const entitlementsEl = document.getElementById("entitlementsList");
+  if (entitlementsEl) {
+    const { data: ents, error } = await supabaseClient
+      .from("entitlements")
+      .select("course_slug, status, valid_from, valid_to")
+      .eq("user_id", user.id);
+
+    if (error) {
+      entitlementsEl.innerHTML = '<p class="error">Could not load entitlements.</p>';
+      console.error("[auth-spike] Entitlements error:", error);
+      return;
+    }
+
+    if (!ents || ents.length === 0) {
+      entitlementsEl.innerHTML = '<p class="empty">No course access found. Contact support if this is incorrect.</p>';
+      console.log("[auth-spike] No entitlements found for user");
+      return;
+    }
+
+    // Build entitlements display
+    entitlementsEl.innerHTML = `
+      <ul class="entitlements-list">
+        ${ents
+          .map((e) => {
+            const status = e.status || "active";
+            const statusClass = status === "active" ? "status-active" : "status-inactive";
+            return `<li>
+              <strong>${e.course_slug}</strong>
+              <span class="${statusClass}">${status}</span>
+            </li>`;
+          })
+          .join("")}
+      </ul>
+    `;
+    console.log(`[auth-spike] Displayed ${ents.length} entitlements`);
+  }
+
+  // 4) Debug context (optional - for development)
+  const debugEl = document.getElementById("debugContext");
+  if (debugEl && hasDebugFlag()) {
+    debugEl.innerHTML = `
+      <div class="debug-info">
+        <strong>Debug Info:</strong>
+        <br>User ID: ${user.id}
+        <br>Email: ${user.email}
+        <br>Session: Active
+        <br>Page: ${window.location.pathname}
+      </div>
+    `;
+    console.log("[auth-spike] Debug context displayed");
+  }
+}
+
+// ============================================================================
+// 9. INITIALIZATION CALLS
+// ============================================================================
+
+// Log initialization
+console.log("Supabase auth script loaded and initialized");
+console.log("Config:", {
+  url: CONFIG.url,
+  hasKey: !!CONFIG.publishableKey,
+  redirects: CONFIG.redirects,
+});
+
+// Run course page gating check
 handleCoursePageGating();
+
+// Run account page population
+populateAccountDemo();
