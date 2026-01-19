@@ -338,10 +338,28 @@ When things aren't working:
 Added dynamic data population for `/account` pages to show Supabase data alongside Webflow CMS:
 
 **Required Webflow Elements:**
-- `[data-user-email]` - Shows logged-in user's email
+- Email display: Add one of these to show user email:
+  - Element with `data-user-email` attribute, OR
+  - Element with ID `userEmail`, OR
+  - Element with ID `profileEmail`
 - `#profileFullName` - Displays full name from profiles table
 - `#entitlementsList` - Container for course entitlements
 - `#debugContext` - Optional debug info (shows with ?debug)
+
+**Important: Entitlements Table Schema**
+The basic entitlements table only has these columns:
+- `id` (uuid)
+- `user_id` (uuid)
+- `course_slug` (text)
+- `created_at` (timestamp)
+
+If you need status/validity dates, add them to your table first:
+```sql
+ALTER TABLE entitlements
+ADD COLUMN status text DEFAULT 'active',
+ADD COLUMN valid_from timestamptz,
+ADD COLUMN valid_to timestamptz;
+```
 
 **Key Implementation Details:**
 1. **Conditional Alerts** - Added `CONFIG.enableAlerts` flag to disable popups during demos

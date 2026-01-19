@@ -20,7 +20,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "19/01/2026, 14:54:58"; // Last updated
+const BUILD_VERSION = "19/01/2026, 15:03:17"; // Last updated
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -531,11 +531,15 @@ async function populateAccountDemo() {
 
   const user = session.user;
 
-  // 1) Email (already supported via [data-user-email] on protected pages)
-  const userEmailEl = document.querySelector("[data-user-email]");
+  // 1) Email - try multiple selectors
+  const userEmailEl = document.querySelector("[data-user-email]") ||
+                      document.getElementById("userEmail") ||
+                      document.getElementById("profileEmail");
   if (userEmailEl) {
     userEmailEl.textContent = user.email;
     console.log("[auth-spike] Set user email display");
+  } else {
+    console.log("[auth-spike] No email display element found. Tried: [data-user-email], #userEmail, #profileEmail");
   }
 
   // 2) Profile full name from Supabase
@@ -559,9 +563,11 @@ async function populateAccountDemo() {
   // 3) Entitlements list (course-level)
   const entitlementsEl = document.getElementById("entitlementsList");
   if (entitlementsEl) {
+    // Only select columns that actually exist in the table
+    // Basic entitlements table only has: id, user_id, course_slug, created_at
     const { data: ents, error } = await supabaseClient
       .from("entitlements")
-      .select("course_slug, status, valid_from, valid_to")
+      .select("course_slug")
       .eq("user_id", user.id);
 
     if (error) {
@@ -576,16 +582,14 @@ async function populateAccountDemo() {
       return;
     }
 
-    // Build entitlements display
+    // Build entitlements display - simplified since we only have course_slug
     entitlementsEl.innerHTML = `
       <ul class="entitlements-list">
         ${ents
           .map((e) => {
-            const status = e.status || "active";
-            const statusClass = status === "active" ? "status-active" : "status-inactive";
             return `<li>
               <strong>${e.course_slug}</strong>
-              <span class="${statusClass}">${status}</span>
+              <span class="status-active">active</span>
             </li>`;
           })
           .join("")}
