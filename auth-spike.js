@@ -15,12 +15,13 @@
  * 5. Protected Page Gating
  * 6. Course Page Entitlement Checking
  * 7. Account Page Data Population
- * 8. Global Auth State Listener
- * 9. Initialization Calls
+ * 8. Lesson Progress Tracking
+ * 9. Global Auth State Listener
+ * 10. Initialization Calls
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "19/01/2026, 15:14:21"; // Last updated
+const BUILD_VERSION = "21/01/2026, 20:27:14"; // Added progress tracking
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -445,7 +446,154 @@ if (protectedMarkers.length > 0) {
 }
 
 // ============================================================================
-// 8. GLOBAL AUTH STATE LISTENER
+// 8. LESSON PROGRESS TRACKING
+// ============================================================================
+
+/**
+ * Get session helper for progress tracking
+ */
+async function getSessionOrNull() {
+  const { data } = await supabaseClient.auth.getSession();
+  return data?.session || null;
+}
+
+/**
+ * Read text content from DOM element by ID
+ */
+function readText(id) {
+  const el = document.getElementById(id);
+  return el ? el.textContent.trim() : null;
+}
+
+/**
+ * Mark a lesson as complete in Supabase
+ */
+async function markLessonComplete() {
+  const session = await getSessionOrNull();
+  if (!session) {
+    console.log("[progress] No session, cannot mark complete");
+    return;
+  }
+
+  const userId = session.user.id;
+  const courseSlug = readText("courseSlug");
+  const moduleSlug = readText("moduleSlug");
+  const lessonSlug = readText("lessonSlug");
+
+  if (!lessonSlug) {
+    console.warn("[progress] No lessonSlug found in DOM");
+    return;
+  }
+
+  const nowIso = new Date().toISOString();
+
+  const payload = {
+    user_id: userId,
+    course_slug: courseSlug,
+    module_slug: moduleSlug,
+    lesson_slug: lessonSlug,
+    completed: true,
+    completed_at: nowIso,
+    last_viewed_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  const { error } = await supabaseClient
+    .from("lesson_progress")
+    .upsert(payload, { onConflict: "user_id,lesson_slug" });
+
+  if (error) {
+    console.error("[progress] upsert failed", error);
+    showFeedback("Could not save progress", true);
+    return;
+  }
+
+  // Update UI to show completion
+  const statusEl = document.getElementById("completionStatus");
+  if (statusEl) {
+    statusEl.textContent = "✅ Completed";
+  }
+
+  // Also update button text if needed
+  const btn = document.getElementById("markCompleteBtn");
+  if (btn) {
+    btn.textContent = "Completed";
+    btn.disabled = true;
+  }
+
+  console.log("[progress] Marked complete:", lessonSlug);
+  showFeedback("Progress saved!");
+}
+
+/**
+ * Check if lesson is already completed and update UI
+ */
+async function checkLessonProgress() {
+  const session = await getSessionOrNull();
+  if (!session) return;
+
+  const lessonSlug = readText("lessonSlug");
+  if (!lessonSlug) return;
+
+  const userId = session.user.id;
+
+  const { data, error } = await supabaseClient
+    .from("lesson_progress")
+    .select("completed, completed_at")
+    .eq("user_id", userId)
+    .eq("lesson_slug", lessonSlug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[progress] check failed", error);
+    return;
+  }
+
+  if (data?.completed) {
+    // Update UI to show already completed
+    const statusEl = document.getElementById("completionStatus");
+    if (statusEl) {
+      statusEl.textContent = "✅ Completed";
+    }
+
+    const btn = document.getElementById("markCompleteBtn");
+    if (btn) {
+      btn.textContent = "Completed";
+      btn.disabled = true;
+    }
+
+    console.log("[progress] Already completed:", lessonSlug);
+  }
+}
+
+/**
+ * Initialize lesson progress UI and handlers
+ */
+function initLessonProgressUI() {
+  // Only run on lesson pages (check for lessonSlug)
+  const lessonSlug = readText("lessonSlug");
+  if (!lessonSlug) {
+    return; // Not a lesson page
+  }
+
+  console.log("[progress] Initializing for lesson:", lessonSlug);
+
+  // Check existing progress on page load
+  checkLessonProgress();
+
+  // Attach handler to mark complete button
+  const btn = document.getElementById("markCompleteBtn");
+  if (btn) {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      await markLessonComplete();
+    });
+    console.log("[progress] Mark complete button handler attached");
+  }
+}
+
+// ============================================================================
+// 9. GLOBAL AUTH STATE LISTENER
 // ============================================================================
 supabaseClient.auth.onAuthStateChange((event, session) => {
   console.log("Auth state changed:", event);
@@ -617,7 +765,7 @@ async function populateAccountDemo() {
 }
 
 // ============================================================================
-// 9. INITIALIZATION CALLS
+// 10. INITIALIZATION CALLS
 // ============================================================================
 
 // Log initialization
@@ -633,3 +781,6 @@ handleCoursePageGating();
 
 // Run account page population
 populateAccountDemo();
+
+// Initialize lesson progress tracking
+initLessonProgressUI();
