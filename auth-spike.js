@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "21/01/2026, 20:27:14"; // Added progress tracking
+const BUILD_VERSION = "21/01/2026, 20:54:36"; // Added progress display on account page
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -764,6 +764,103 @@ async function populateAccountDemo() {
   }
 }
 
+/**
+ * Render user's completed lessons progress on /account page
+ */
+async function renderProgressOnAccount() {
+  // Only run on /account page
+  if (!window.location.pathname.startsWith("/account")) return;
+
+  const session = await requireAuthOrRedirect();
+  if (!session) return;
+
+  const userId = session.user.id;
+
+  const listEl = document.getElementById("progressList");
+  const emptyEl = document.getElementById("progressEmptyState");
+
+  if (!listEl) {
+    console.log("[progress] #progressList not found on /account, skipping progress render");
+    return;
+  }
+
+  console.log("[progress] Fetching completed lessons for account page");
+
+  // Fetch completed lessons (latest first)
+  const { data, error } = await supabaseClient
+    .from("lesson_progress")
+    .select("course_slug,module_slug,lesson_slug,completed,completed_at,updated_at")
+    .eq("user_id", userId)
+    .eq("completed", true)
+    .order("completed_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error("[progress] Failed to read progress", error);
+    listEl.innerHTML = '<p class="error">Could not load progress.</p>';
+    if (emptyEl) emptyEl.style.display = "none";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    console.log("[progress] No completed lessons found");
+    listEl.innerHTML = "";
+    if (emptyEl) {
+      emptyEl.style.display = "";
+      emptyEl.textContent = "No completed lessons yet.";
+    }
+    return;
+  }
+
+  console.log(`[progress] Found ${data.length} completed lessons`);
+
+  // Hide empty state if we have data
+  if (emptyEl) emptyEl.style.display = "none";
+
+  // Format date helper
+  const formatDate = (iso) => {
+    if (!iso) return "";
+    try {
+      const date = new Date(iso);
+      // Use a shorter format for better display
+      return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return iso;
+    }
+  };
+
+  // Build the progress list HTML
+  listEl.innerHTML = `
+    <ul class="progress-list">
+      ${data
+        .map((row) => {
+          const when = formatDate(row.completed_at || row.updated_at);
+          // Build lesson URL if we have the slugs
+          const lessonUrl = row.course_slug && row.module_slug && row.lesson_slug
+            ? `/courses/${row.course_slug}/${row.module_slug}/${row.lesson_slug}`
+            : null;
+
+          return `
+            <li class="progress-item">
+              ${lessonUrl
+                ? `<a href="${lessonUrl}"><strong>${row.lesson_slug}</strong></a>`
+                : `<strong>${row.lesson_slug}</strong>`
+              }
+              <div class="progress-meta" style="opacity:0.8;font-size:0.9em">
+                ${row.course_slug} / ${row.module_slug}
+                ${when ? `— Completed: ${when}` : ""}
+              </div>
+            </li>
+          `;
+        })
+        .join("")}
+    </ul>
+    <div class="progress-summary" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #eee">
+      <em>Total completed: ${data.length} lesson${data.length !== 1 ? 's' : ''}</em>
+    </div>
+  `;
+}
+
 // ============================================================================
 // 10. INITIALIZATION CALLS
 // ============================================================================
@@ -781,6 +878,9 @@ handleCoursePageGating();
 
 // Run account page population
 populateAccountDemo();
+
+// Render progress on account page
+renderProgressOnAccount();
 
 // Initialize lesson progress tracking
 initLessonProgressUI();
