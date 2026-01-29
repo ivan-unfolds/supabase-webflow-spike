@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 15:40:53"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 15:46:51"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -446,6 +446,8 @@ async function initializeProfileForm(session) {
 
           const full_name = document.querySelector("#fullName")?.value || "";
 
+          if (hasDebugFlag()) console.log("[profile] Submitting profile update:", { full_name });
+
           try {
             // Re-verify session at submission time
             const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
@@ -454,6 +456,8 @@ async function initializeProfileForm(session) {
               window.location.href = CONFIG.redirects.loginPage;
               return;
             }
+
+            if (hasDebugFlag()) console.log("[profile] Updating profile for user:", currentSession.user.id);
 
             const { error } = await supabaseClient
               .from("profiles")
@@ -466,7 +470,9 @@ async function initializeProfileForm(session) {
             if (error) throw error;
 
             showFeedback("Profile updated successfully!");
+            if (hasDebugFlag()) console.log("[profile] Profile updated successfully");
           } catch (error) {
+            console.error("[profile] Update error:", error);
             showFeedback(error.message, true);
           }
         },
@@ -539,6 +545,10 @@ async function initializePageProtection() {
       // Auth + account data population
       await populateAccountPage();
       await renderProgressOnAccount();
+      // Also initialize profile form if it exists on account page
+      if (document.querySelector("#profileForm")) {
+        await initializeProfileForm(session);
+      }
       break;
 
     case "profile":
