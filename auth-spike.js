@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 14:50:13"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 14:54:21"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -402,13 +402,21 @@ async function initializeProfileForm(session) {
           const full_name = document.querySelector("#fullName")?.value || "";
 
           try {
+            // Re-verify session at submission time
+            const { data: { session: currentSession } } = await supabaseClient.auth.getSession();
+            if (!currentSession) {
+              showFeedback("Session expired. Please log in again.", true);
+              window.location.href = CONFIG.redirects.loginPage;
+              return;
+            }
+
             const { error } = await supabaseClient
               .from("profiles")
               .update({
                 full_name,
                 updated_at: new Date().toISOString(),
               })
-              .eq("id", user.id);
+              .eq("id", currentSession.user.id);
 
             if (error) throw error;
 
