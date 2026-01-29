@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 15:23:53"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 15:36:20"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -135,8 +135,27 @@ if (signupForm) {
         // If email confirmation is required, show different message
         if (data.user && !data.session) {
           showFeedback("Check your email to confirm your account!");
-        } else {
-          // Auto-login successful
+        } else if (data.user && data.session) {
+          // Auto-login successful - create profile
+          try {
+            // Create profile for new user
+            const { error: profileError } = await supabaseClient
+              .from("profiles")
+              .insert({
+                id: data.user.id,
+                email: data.user.email,
+                full_name: "",
+                avatar_url: "",
+              });
+
+            if (profileError && profileError.code !== '23505') { // Ignore duplicate key error
+              console.error("Profile creation error during signup:", profileError);
+            }
+          } catch (err) {
+            console.error("Failed to create profile:", err);
+          }
+
+          // Redirect regardless of profile creation result
           window.location.href = CONFIG.redirects.afterSignup;
         }
       } catch (error) {
