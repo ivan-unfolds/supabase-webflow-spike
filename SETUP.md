@@ -117,6 +117,21 @@ Add this attribute to any element on pages that require authentication:
 </div>
 ```
 
+### Profiles Directory Page (`/people`)
+```html
+<!-- Main container for profile cards -->
+<div id="profilesList"></div>
+
+<!-- Optional: Loading state -->
+<div id="profilesLoading" style="display: none;">Loading profiles...</div>
+
+<!-- Optional: Empty state -->
+<div id="profilesEmpty" style="display: none;">No profiles found.</div>
+
+<!-- Optional: Error state -->
+<div id="profilesError" style="display: none;"></div>
+```
+
 ## Supabase Setup Checklist
 
 ### 1. Database Schema
@@ -147,6 +162,9 @@ with check (id = auth.uid());
 create policy "profiles_update_own"
 on public.profiles for update
 using (id = auth.uid());
+
+-- For Profiles Directory feature: Create RPC functions
+-- (Run the SQL from sql/profiles-directory-functions.sql)
 ```
 
 ### 2. Authentication Settings

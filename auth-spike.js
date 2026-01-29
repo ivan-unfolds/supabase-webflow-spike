@@ -16,12 +16,13 @@
  * 6. Course Page Entitlement Checking
  * 7. Account Page Data Population
  * 8. Lesson Progress Tracking
- * 9. Global Auth State Listener
- * 10. Initialization Calls
+ * 9. Profiles Directory (People Page)
+ * 10. Global Auth State Listener
+ * 11. Initialization Calls
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 15:50:12"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 22:12:09"; // Added profiles directory feature
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -710,7 +711,325 @@ function initLessonProgressUI() {
 }
 
 // ============================================================================
-// 9. GLOBAL AUTH STATE LISTENER
+// 9. PROFILES DIRECTORY (PEOPLE PAGE)
+// ============================================================================
+
+/**
+ * Initialize profiles directory page
+ * Shows all profiles with view/edit permissions demo
+ * Only own profile can be edited
+ */
+async function initProfilesDirectory() {
+  // Only run on /people page
+  if (!window.location.pathname.startsWith("/people")) {
+    return;
+  }
+
+  if (hasDebugFlag()) console.log("[directory] Initializing profiles directory");
+
+  // Require authentication
+  const session = await requireAuthOrRedirect();
+  if (!session) return;
+
+  const currentUserId = session.user.id;
+
+  // Get DOM elements
+  const listEl = document.getElementById("profilesList");
+  const emptyEl = document.getElementById("profilesEmpty");
+  const errorEl = document.getElementById("profilesError");
+  const loadingEl = document.getElementById("profilesLoading");
+
+  if (!listEl) {
+    console.warn("[directory] #profilesList element not found on /people page");
+    return;
+  }
+
+  // Show loading state
+  if (loadingEl) loadingEl.style.display = "";
+
+  try {
+    // Fetch all profile cards using RPC
+    const { data: profiles, error } = await supabaseClient.rpc("list_profile_cards");
+
+    if (error) {
+      console.error("[directory] Failed to load profiles:", error);
+      throw error;
+    }
+
+    // Hide loading
+    if (loadingEl) loadingEl.style.display = "none";
+
+    if (!profiles || profiles.length === 0) {
+      // Show empty state
+      listEl.innerHTML = "";
+      if (emptyEl) {
+        emptyEl.style.display = "";
+        emptyEl.textContent = "No profiles found yet.";
+      }
+      return;
+    }
+
+    // Hide empty state and error
+    if (emptyEl) emptyEl.style.display = "none";
+    if (errorEl) errorEl.style.display = "none";
+
+    // Hide profile detail initially (since nothing selected)
+    const detailEl = document.getElementById("profileDetail");
+    if (detailEl) detailEl.style.display = "none";
+
+    if (hasDebugFlag()) console.log(`[directory] Loaded ${profiles.length} profiles`);
+
+    // Clear any placeholder content and render profile cards
+    listEl.innerHTML = profiles
+      .map((profile) => {
+        const isMe = profile.id === currentUserId;
+        const displayName = (profile.full_name || "").trim() || "(name not set)";
+        const avatarUrl = profile.avatar_url || "";
+
+        return `
+          <div class="profile-card" data-profile-id="${profile.id}">
+            <div class="profile-card__row">
+              ${avatarUrl ? `<img class="profile-card__avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}'s avatar">` : ''}
+              <div class="profile-card__meta">
+                <div class="profile-card__name">${escapeHtml(displayName)}</div>
+                ${isMe ? `<div class="profile-card__badge">You</div>` : ''}
+              </div>
+            </div>
+
+            <div class="profile-card__actions">
+              <button class="btn-view" data-action="view" data-profile-id="${profile.id}">
+                View
+              </button>
+              ${isMe
+                ? `<button class="btn-edit" data-action="edit" data-profile-id="${profile.id}">
+                     Edit
+                   </button>`
+                : `<button class="btn-edit" data-action="edit" disabled title="You can only edit your own profile">
+                     Edit (Locked)
+                   </button>`
+              }
+            </div>
+
+            <!-- Inline edit form (hidden by default, only for current user) -->
+            ${isMe ? `
+              <div class="profile-card__edit" id="edit-form-${profile.id}" style="display: none; margin-top: 0.75rem;">
+                <label style="display: block; margin-bottom: 0.25rem;">Full name</label>
+                <input
+                  type="text"
+                  id="edit-name-${profile.id}"
+                  class="edit-full-name"
+                  value="${escapeAttr(profile.full_name || '')}"
+                  style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px;"
+                />
+                <button class="btn-save" data-action="save" data-profile-id="${profile.id}" style="margin-top: 0.5rem;">
+                  Save
+                </button>
+                <span class="save-status" id="save-status-${profile.id}" style="margin-left: 0.5rem; opacity: 0.8;"></span>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      })
+      .join("");
+
+    // Attach event handlers using delegation
+    listEl.addEventListener("click", handleDirectoryClick);
+
+    async function handleDirectoryClick(e) {
+      const button = e.target.closest("button[data-action]");
+      if (!button) return;
+
+      const action = button.getAttribute("data-action");
+      const profileId = button.getAttribute("data-profile-id");
+
+      if (!profileId) return;
+
+      const isMe = profileId === currentUserId;
+
+      switch (action) {
+        case "view":
+          await viewProfileDetails(profileId);
+          break;
+
+        case "edit":
+          if (!isMe) {
+            showFeedback("You can only edit your own profile", true);
+            return;
+          }
+          toggleEditForm(profileId);
+          break;
+
+        case "save":
+          if (!isMe) return;
+          await saveProfileChanges(profileId);
+          break;
+      }
+    }
+
+    /**
+     * Toggle inline edit form visibility
+     */
+    function toggleEditForm(profileId, show = null) {
+      const editForm = document.getElementById(`edit-form-${profileId}`);
+      if (!editForm) return;
+
+      if (show === null) {
+        // Toggle
+        editForm.style.display = editForm.style.display === "none" ? "" : "none";
+      } else {
+        // Explicit show/hide
+        editForm.style.display = show ? "" : "none";
+      }
+    }
+
+    /**
+     * Save profile changes
+     */
+    async function saveProfileChanges(profileId) {
+      const nameInput = document.getElementById(`edit-name-${profileId}`);
+      const statusEl = document.getElementById(`save-status-${profileId}`);
+
+      if (!nameInput) return;
+
+      const newName = nameInput.value.trim();
+
+      // Show saving state
+      if (statusEl) {
+        statusEl.textContent = "Saving...";
+        statusEl.className = "save-status save-status--loading";
+      }
+
+      try {
+        // Update profile using existing RLS
+        const { error } = await supabaseClient
+          .from("profiles")
+          .update({
+            full_name: newName,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", profileId);
+
+        if (error) throw error;
+
+        // Update UI
+        const card = document.querySelector(`[data-profile-id="${profileId}"]`);
+        if (card) {
+          const nameEl = card.querySelector(".profile-card__name");
+          if (nameEl) {
+            nameEl.textContent = newName || "(name not set)";
+          }
+        }
+
+        // Show success
+        if (statusEl) {
+          statusEl.textContent = "Saved!";
+          statusEl.className = "save-status save-status--success";
+        }
+
+        // Hide form after short delay
+        setTimeout(() => {
+          toggleEditForm(profileId, false);
+          if (statusEl) statusEl.textContent = "";
+        }, 1500);
+
+        if (hasDebugFlag()) console.log("[directory] Profile updated successfully");
+
+      } catch (error) {
+        console.error("[directory] Failed to save profile:", error);
+        if (statusEl) {
+          statusEl.textContent = "Error saving";
+          statusEl.className = "save-status save-status--error";
+        }
+        showFeedback(error.message || "Failed to save profile", true);
+      }
+    }
+
+    /**
+     * View detailed profile using the profileDetail section
+     */
+    async function viewProfileDetails(profileId) {
+      if (hasDebugFlag()) console.log("[directory] Viewing profile:", profileId);
+
+      const detailEl = document.getElementById("profileDetail");
+      const nameEl = document.getElementById("profileDetailName");
+      const avatarEl = document.getElementById("profileDetailAvatar");
+
+      try {
+        const { data: profile, error } = await supabaseClient.rpc("get_profile_card", {
+          target_id: profileId
+        });
+
+        if (error) throw error;
+
+        if (profile && profile.length > 0) {
+          const p = profile[0];
+
+          // Update detail section
+          if (detailEl) {
+            detailEl.style.display = "";
+
+            if (nameEl) {
+              nameEl.textContent = p.full_name || "(name not set)";
+            }
+
+            if (avatarEl) {
+              if (p.avatar_url) {
+                avatarEl.src = p.avatar_url;
+                avatarEl.alt = `${p.full_name || "User"}'s avatar`;
+              } else {
+                // Keep placeholder image if no avatar
+                avatarEl.src = "https://cdn.prod.website-files.com/plugins/Basic/assets/placeholder.60f9b1840c.svg";
+                avatarEl.alt = "No avatar";
+              }
+            }
+          }
+
+          if (hasDebugFlag()) console.log("[directory] Profile details displayed:", p);
+        }
+      } catch (error) {
+        console.error("[directory] Failed to load profile details:", error);
+        if (nameEl) nameEl.textContent = "Error loading profile";
+        showFeedback("Could not load profile details", true);
+      }
+    }
+
+  } catch (error) {
+    // Hide loading
+    if (loadingEl) loadingEl.style.display = "none";
+
+    // Show error
+    console.error("[directory] Failed to initialize:", error);
+    if (errorEl) {
+      errorEl.style.display = "";
+      errorEl.textContent = error.message || "Failed to load profiles directory";
+    }
+    showFeedback("Failed to load profiles directory", true);
+  }
+}
+
+/**
+ * Helper function to escape HTML
+ */
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/**
+ * Helper function to escape HTML attributes
+ */
+function escapeAttr(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// ============================================================================
+// 10. GLOBAL AUTH STATE LISTENER
 // ============================================================================
 supabaseClient.auth.onAuthStateChange((event, session) => {
   console.log("Auth state changed:", event);
@@ -982,7 +1301,7 @@ async function renderProgressOnAccount() {
 }
 
 // ============================================================================
-// 10. INITIALIZATION CALLS
+// 11. INITIALIZATION CALLS
 // ============================================================================
 
 // Log initialization
@@ -998,3 +1317,6 @@ initializePageProtection();
 
 // Initialize lesson progress tracking (independent of protection)
 initLessonProgressUI();
+
+// Initialize profiles directory (if on /people page)
+initProfilesDirectory();
