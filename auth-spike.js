@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 15:19:17"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 15:23:53"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -60,7 +60,7 @@ const CONFIG = window.SB_CONFIG || {
   // URL patterns for different page types (customize based on your Webflow structure)
   urlPatterns: {
     course: "/courses/{course_slug}", // e.g., /courses/javascript-basics
-    lesson: "/{module_slug}/{lesson_slug}", // e.g., /module-1/intro-to-variables
+    lesson: "/lessons/{lesson_slug}", // e.g., /lessons/lms-future-webflow-10
   },
 };
 
@@ -904,12 +904,10 @@ async function renderProgressOnAccount() {
       ${data
         .map((row) => {
           const when = formatDate(row.completed_at || row.updated_at);
-          // Build lesson URL if we have the slugs
-          const lessonPattern = CONFIG.urlPatterns?.lesson || "/{module_slug}/{lesson_slug}";
-          const lessonUrl = row.module_slug && row.lesson_slug
-            ? lessonPattern
-                .replace("{module_slug}", row.module_slug)
-                .replace("{lesson_slug}", row.lesson_slug)
+          // Build lesson URL if we have the lesson slug
+          const lessonPattern = CONFIG.urlPatterns?.lesson || "/lessons/{lesson_slug}";
+          const lessonUrl = row.lesson_slug
+            ? lessonPattern.replace("{lesson_slug}", row.lesson_slug)
             : null;
 
           return `
