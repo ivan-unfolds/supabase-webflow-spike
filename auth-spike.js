@@ -12,7 +12,7 @@
  * 2. Utility Functions
  * 3. Auth Form Handlers (Signup, Login, Logout, Password)
  * 4. Profile Management
- * 5. Protected Page Gating
+ * 5. Unified Page Protection System
  * 6. Course Page Entitlement Checking
  * 7. Account Page Data Population
  * 8. Lesson Progress Tracking
@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "21/01/2026, 20:54:36"; // Added progress display on account page
+const BUILD_VERSION = "29/01/2026, 14:50:13"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -103,7 +103,7 @@ function showFeedback(message, isError = false) {
 // --------------------
 const signupForm = document.querySelector("#signupForm");
 if (signupForm) {
-  console.log("Signup form detected, attaching handler");
+  if (hasDebugFlag()) console.log("Signup form detected, attaching handler");
 
   signupForm.addEventListener(
     "submit",
@@ -147,7 +147,7 @@ if (signupForm) {
 // --------------------
 const loginForm = document.querySelector("#loginForm");
 if (loginForm) {
-  console.log("Login form detected, attaching handler");
+  if (hasDebugFlag()) console.log("Login form detected, attaching handler");
 
   loginForm.addEventListener(
     "submit",
@@ -185,7 +185,7 @@ if (loginForm) {
 // --------------------
 const logoutBtn = document.querySelector("#logoutBtn");
 if (logoutBtn) {
-  console.log("Logout button detected, attaching handler");
+  if (hasDebugFlag()) console.log("Logout button detected, attaching handler");
 
   logoutBtn.addEventListener("click", async () => {
     try {
@@ -329,16 +329,20 @@ if (updatePwForm) {
 // ============================================================================
 // 4. PROFILE MANAGEMENT
 // ============================================================================
-const profileForm = document.querySelector("#profileForm");
-if (profileForm) {
-  console.log("Profile form detected, loading profile");
 
-  (async () => {
-    // Require authentication
-    const session = await requireAuthOrRedirect();
-    if (!session) return;
+/**
+ * Initialize profile form with authentication
+ * Called from unified protection system when data-protected="profile"
+ */
+async function initializeProfileForm(session) {
+  const profileForm = document.querySelector("#profileForm");
+  if (!profileForm) {
+    console.warn("[auth-spike] No profile form found despite data-protected='profile'");
+    return;
+  }
 
-    const user = session.user;
+  if (hasDebugFlag()) console.log("Initializing profile form");
+  const user = session.user;
 
     try {
       // Check if profile exists
@@ -419,30 +423,80 @@ if (profileForm) {
       console.error("Profile initialization error:", error);
       showFeedback("Error loading profile", true);
     }
-  })();
 }
 
 // ============================================================================
-// 5. PROTECTED PAGE GATING
+// 5. UNIFIED PAGE PROTECTION SYSTEM
 // ============================================================================
-// Check for protected page markers
-const protectedMarkers = document.querySelectorAll("[data-protected='true']");
-if (protectedMarkers.length > 0) {
-  console.log("Protected page detected, checking authentication");
 
-  (async () => {
-    const session = await requireAuthOrRedirect();
-    if (session) {
-      console.log("User authenticated, access granted");
+/**
+ * Main protection system that checks data-protected attributes
+ * Protection types:
+ * - "true" or "basic": Simple authentication required
+ * - "course": Authentication + entitlement check (requires courseSlug element)
+ * - "account": Authentication + account data population
+ * - "profile": Authentication + profile form handling
+ */
+async function initializePageProtection() {
+  const protectedEl = document.querySelector("[data-protected]");
 
+  if (!protectedEl) {
+    if (hasDebugFlag()) console.log("[auth-spike] No protection required on this page");
+    return;
+  }
+
+  const protectionType = protectedEl.getAttribute("data-protected");
+  if (hasDebugFlag()) console.log(`[auth-spike] Page protection type: ${protectionType}`);
+
+  // Check for debug bypass
+  if (hasDebugFlag()) {
+    console.log("[auth-spike] Protection bypassed via ?debug");
+    return;
+  }
+
+  // Most protection types need auth, so check once
+  const needsAuth = ["true", "basic", "account", "profile"].includes(protectionType);
+  let session = null;
+
+  if (needsAuth) {
+    session = await requireAuthOrRedirect();
+    if (!session) return; // Redirect already happened
+  }
+
+  // Handle different protection types
+  switch(protectionType) {
+    case "true":
+    case "basic":
+      // Simple auth check - already done above
+      if (hasDebugFlag()) console.log("User authenticated, access granted");
       // Optionally show user info
-      const userEmail = session.user.email;
       const userDisplay = document.querySelector("[data-user-email]");
-      if (userDisplay) {
-        userDisplay.textContent = userEmail;
+      if (userDisplay && session) {
+        userDisplay.textContent = session.user.email;
       }
-    }
-  })();
+      break;
+
+    case "course":
+      // Auth + entitlement check
+      // Note: Still requires courseSlug element to be present
+      await handleCoursePageGating();
+      break;
+
+    case "account":
+      // Auth + account data population
+      await populateAccountPage();
+      await renderProgressOnAccount();
+      break;
+
+    case "profile":
+      // Auth + profile form handling
+      await initializeProfileForm(session);
+      break;
+
+    default:
+      console.warn(`[auth-spike] Unknown protection type: ${protectionType}, defaulting to basic auth`);
+      await requireAuthOrRedirect();
+  }
 }
 
 // ============================================================================
@@ -668,14 +722,15 @@ async function handleCoursePageGating() {
 // ============================================================================
 // 7. ACCOUNT PAGE DATA POPULATION
 // ============================================================================
-async function populateAccountDemo() {
-  // Only run on /account page
-  if (!window.location.pathname.startsWith("/account")) return;
+async function populateAccountPage() {
+  if (hasDebugFlag()) console.log("[auth-spike] Populating account page data");
 
-  console.log("[auth-spike] Populating account page data");
-
-  const session = await requireAuthOrRedirect();
-  if (!session) return;
+  // Get current session (assumes already authenticated by protection system)
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    console.error("[auth-spike] No session found for account population");
+    return;
+  }
 
   const user = session.user;
 
@@ -685,8 +740,8 @@ async function populateAccountDemo() {
                       document.getElementById("profileEmail");
   if (userEmailEl) {
     userEmailEl.textContent = user.email;
-    console.log("[auth-spike] Set user email display");
-  } else {
+    if (hasDebugFlag()) console.log("[auth-spike] Set user email display");
+  } else if (hasDebugFlag()) {
     console.log("[auth-spike] No email display element found. Tried: [data-user-email], #userEmail, #profileEmail");
   }
 
@@ -701,10 +756,10 @@ async function populateAccountDemo() {
 
     if (!error && profile?.full_name) {
       fullNameEl.textContent = profile.full_name;
-      console.log("[auth-spike] Set profile full name:", profile.full_name);
+      if (hasDebugFlag()) console.log("[auth-spike] Set profile full name:", profile.full_name);
     } else {
       fullNameEl.textContent = "(name not set yet)";
-      console.log("[auth-spike] No profile name found");
+      if (hasDebugFlag()) console.log("[auth-spike] No profile name found");
     }
   }
 
@@ -745,7 +800,7 @@ async function populateAccountDemo() {
           .join("")}
       </ul>
     `;
-    console.log(`[auth-spike] Displayed ${ents.length} entitlements`);
+    if (hasDebugFlag()) console.log(`[auth-spike] Displayed ${ents.length} entitlements`);
   }
 
   // 4) Debug context (optional - for development)
@@ -768,11 +823,12 @@ async function populateAccountDemo() {
  * Render user's completed lessons progress on /account page
  */
 async function renderProgressOnAccount() {
-  // Only run on /account page
-  if (!window.location.pathname.startsWith("/account")) return;
-
-  const session = await requireAuthOrRedirect();
-  if (!session) return;
+  // Get current session (assumes already authenticated by protection system)
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    console.error("[auth-spike] No session found for progress render");
+    return;
+  }
 
   const userId = session.user.id;
 
@@ -873,14 +929,8 @@ console.log("Config:", {
   redirects: CONFIG.redirects,
 });
 
-// Run course page gating check
-handleCoursePageGating();
+// Initialize unified page protection system
+initializePageProtection();
 
-// Run account page population
-populateAccountDemo();
-
-// Render progress on account page
-renderProgressOnAccount();
-
-// Initialize lesson progress tracking
+// Initialize lesson progress tracking (independent of protection)
 initLessonProgressUI();

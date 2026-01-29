@@ -185,12 +185,19 @@ const supabaseClient = createClient(CONFIG.url, CONFIG.publishableKey);
 
 ## Step 5 — Protected Page Gating (30-60 mins)
 
-Add `data-protected="true"` to any element on protected pages.
+Use `data-protected` attributes to control page access:
+
+**Protection Types:**
+- `data-protected="true"` - Basic authentication required
+- `data-protected="course"` - Requires auth + course entitlement (needs `#courseSlug` element)
+- `data-protected="account"` - Auth + populates account data
+- `data-protected="profile"` - Auth + enables profile editing
 
 The script automatically:
-- Checks for this attribute
-- Redirects to login if no session
-- Shows user email if `data-user-email` element exists
+- Checks for `data-protected` attribute on page load
+- Applies the appropriate protection level
+- Redirects to login if authentication fails
+- Loads relevant data based on protection type
 
 ---
 
@@ -373,7 +380,7 @@ As the script grew to 600+ lines, reorganized into clear sections:
 2. Utility Functions
 3. Auth Form Handlers
 4. Profile Management
-5. Protected Page Gating
+5. Unified Page Protection System
 6. Course Page Entitlement Checking
 7. Account Page Data Population
 8. Global Auth State Listener
