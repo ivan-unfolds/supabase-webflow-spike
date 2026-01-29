@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 15:46:51"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 15:47:41"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -545,10 +545,6 @@ async function initializePageProtection() {
       // Auth + account data population
       await populateAccountPage();
       await renderProgressOnAccount();
-      // Also initialize profile form if it exists on account page
-      if (document.querySelector("#profileForm")) {
-        await initializeProfileForm(session);
-      }
       break;
 
     case "profile":
