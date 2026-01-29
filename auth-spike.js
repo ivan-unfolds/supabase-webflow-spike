@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 15:36:20"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 15:40:53"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -71,6 +71,68 @@ const supabaseClient = createClient(CONFIG.url, CONFIG.publishableKey);
 // ============================================================================
 // 2. UTILITY FUNCTIONS
 // ============================================================================
+
+/**
+ * Ensure a user profile exists in the profiles table
+ * Creates one if it doesn't exist, updates email if it does
+ * @param {string} userId - The user's auth ID
+ * @param {string} email - The user's email
+ * @returns {Promise<{success: boolean, profile?: any, error?: any}>}
+ */
+async function ensureProfileExists(userId, email) {
+  try {
+    // First try to get existing profile
+    const { data: existingProfile, error: fetchError } = await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error("Profile fetch error:", fetchError);
+      return { success: false, error: fetchError };
+    }
+
+    if (existingProfile) {
+      return { success: true, profile: existingProfile };
+    }
+
+    // Create new profile
+    if (hasDebugFlag()) console.log("Creating new profile for user:", userId);
+
+    const { data: newProfile, error: insertError } = await supabaseClient
+      .from("profiles")
+      .insert({
+        id: userId,
+        email: email,
+        full_name: "",
+        avatar_url: "",
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      // 23505 = unique violation (profile already exists - race condition)
+      if (insertError.code === '23505') {
+        if (hasDebugFlag()) console.log("Profile already exists (race condition), fetching...");
+        // Try to fetch again
+        const { data: profile } = await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+        return { success: true, profile };
+      }
+      console.error("Profile creation error:", insertError);
+      return { success: false, error: insertError };
+    }
+
+    return { success: true, profile: newProfile };
+  } catch (error) {
+    console.error("Unexpected error in ensureProfileExists:", error);
+    return { success: false, error };
+  }
+}
 
 // Utility: Check if user is authenticated and redirect if not
 async function requireAuthOrRedirect(redirectTo = CONFIG.redirects.loginPage) {
@@ -136,25 +198,8 @@ if (signupForm) {
         if (data.user && !data.session) {
           showFeedback("Check your email to confirm your account!");
         } else if (data.user && data.session) {
-          // Auto-login successful - create profile
-          try {
-            // Create profile for new user
-            const { error: profileError } = await supabaseClient
-              .from("profiles")
-              .insert({
-                id: data.user.id,
-                email: data.user.email,
-                full_name: "",
-                avatar_url: "",
-              });
-
-            if (profileError && profileError.code !== '23505') { // Ignore duplicate key error
-              console.error("Profile creation error during signup:", profileError);
-            }
-          } catch (err) {
-            console.error("Failed to create profile:", err);
-          }
-
+          // Auto-login successful - ensure profile exists
+          await ensureProfileExists(data.user.id, data.user.email);
           // Redirect regardless of profile creation result
           window.location.href = CONFIG.redirects.afterSignup;
         }
@@ -369,37 +414,13 @@ async function initializeProfileForm(session) {
   const user = session.user;
 
     try {
-      // Check if profile exists
-      let { data: profile, error: fetchError } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+      // Ensure profile exists and get it
+      const { success, profile, error } = await ensureProfileExists(user.id, user.email);
 
-      if (fetchError) {
-        console.warn("Profile fetch error:", fetchError);
-      }
-
-      // Create profile if it doesn't exist
-      if (!profile) {
-        console.log("Creating new profile for user");
-
-        const { data: newProfile, error: insertError } = await supabaseClient
-          .from("profiles")
-          .insert({
-            id: user.id,
-            email: user.email,
-            full_name: "",
-            avatar_url: "",
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error("Profile creation error:", insertError);
-        } else {
-          profile = newProfile;
-        }
+      if (!success) {
+        console.error("Could not ensure profile exists:", error);
+        showFeedback("Error loading profile. Please refresh the page.", true);
+        return;
       }
 
       // Populate form with existing data

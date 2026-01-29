@@ -10,6 +10,37 @@ The authentication and gating system uses explicit `data-protected` attributes o
 2. **Based on the attribute value**, it applies the appropriate protection level
 3. **Debug bypass**: Add `?debug` to any URL to skip protection (development only)
 
+## Profile Management
+
+### Automatic Profile Creation
+User profiles are automatically created in the `profiles` table:
+- **On Signup** - Profile created immediately after successful authentication
+- **On Profile Page Visit** - Profile created if missing (failsafe)
+
+The system uses the `ensureProfileExists()` utility to handle profile creation with proper error handling and race condition management.
+
+### Recommended: Database Trigger Approach
+For production systems, consider using a database trigger to ensure profiles always exist:
+
+```sql
+-- Create function to handle new user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, avatar_url)
+  VALUES (new.id, new.email, '', '');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger that fires after user creation
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+This ensures a profile exists regardless of how the user is created (signup, admin panel, API).
+
 ## Protection Types
 
 ### Basic Authentication (`data-protected="true"`)

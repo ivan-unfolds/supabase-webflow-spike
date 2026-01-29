@@ -42,6 +42,21 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- RECOMMENDED: Automatic profile creation trigger
+-- This ensures a profile always exists for every user
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, avatar_url)
+  VALUES (new.id, new.email, '', '');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 create policy "profiles_select_own"
 on public.profiles for select
 using (id = auth.uid());
