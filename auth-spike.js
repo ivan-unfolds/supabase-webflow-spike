@@ -21,7 +21,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 14:54:21"; // Refactored to unified data-protected gating system
+const BUILD_VERSION = "29/01/2026, 15:19:17"; // Refactored to unified data-protected gating system
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -56,6 +56,11 @@ const CONFIG = window.SB_CONFIG || {
     afterSignup: "/account",
     afterLogout: "/login",
     loginPage: "/login",
+  },
+  // URL patterns for different page types (customize based on your Webflow structure)
+  urlPatterns: {
+    course: "/courses/{course_slug}", // e.g., /courses/javascript-basics
+    lesson: "/{module_slug}/{lesson_slug}", // e.g., /module-1/intro-to-variables
   },
 };
 
@@ -794,12 +799,12 @@ async function populateAccountPage() {
     }
 
     // Build entitlements display with links to courses
-    const baseUrl = `${window.location.origin}/courses/`;
+    const coursePattern = CONFIG.urlPatterns?.course || "/courses/{course_slug}";
     entitlementsEl.innerHTML = `
       <ul class="entitlements-list">
         ${ents
           .map((e) => {
-            const courseUrl = `${baseUrl}${e.course_slug}`;
+            const courseUrl = coursePattern.replace("{course_slug}", e.course_slug);
             return `<li>
               <a href="${courseUrl}"><strong>${e.course_slug}</strong></a>
               <span class="status-active">active</span>
@@ -900,8 +905,11 @@ async function renderProgressOnAccount() {
         .map((row) => {
           const when = formatDate(row.completed_at || row.updated_at);
           // Build lesson URL if we have the slugs
-          const lessonUrl = row.course_slug && row.module_slug && row.lesson_slug
-            ? `/courses/${row.course_slug}/${row.module_slug}/${row.lesson_slug}`
+          const lessonPattern = CONFIG.urlPatterns?.lesson || "/{module_slug}/{lesson_slug}";
+          const lessonUrl = row.module_slug && row.lesson_slug
+            ? lessonPattern
+                .replace("{module_slug}", row.module_slug)
+                .replace("{lesson_slug}", row.lesson_slug)
             : null;
 
           return `
