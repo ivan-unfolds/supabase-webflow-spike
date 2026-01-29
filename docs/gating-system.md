@@ -73,13 +73,14 @@ This ensures a profile exists regardless of how the user is created (signup, adm
 ```
 
 ### Account Page (`data-protected="account"`)
-- **Purpose**: Require login + populate account data
-- **Use case**: User account/dashboard pages
+- **Purpose**: Require login + populate account data + optional profile editing
+- **Use case**: User account/dashboard pages (often combines display + edit)
 - **Auto-populates**:
   - User email (`[data-user-email]`, `#userEmail`, or `#profileEmail`)
   - Profile name (`#profileFullName`)
   - Course entitlements (`#entitlementsList`)
   - Lesson progress (`#progressList`)
+- **Auto-initializes**: Profile form if `#profileForm` exists on the page
 
 ```html
 <div data-protected="account">
@@ -87,17 +88,24 @@ This ensures a profile exists regardless of how the user is created (signup, adm
   <div id="userEmail"></div>
   <div id="entitlementsList"></div>
   <div id="progressList"></div>
+
+  <!-- Profile form is optional - initialized automatically if present -->
+  <form id="profileForm">
+    <input type="text" id="fullName" placeholder="Full Name">
+    <button type="submit">Save Profile</button>
+  </form>
 </div>
 ```
 
-### Profile Management (`data-protected="profile"`)
-- **Purpose**: Require login + enable profile editing
-- **Use case**: Profile edit pages
+### Profile-Only Page (`data-protected="profile"`)
+- **Purpose**: Require login + ONLY profile editing (no account data display)
+- **Use case**: Dedicated settings or profile edit page
 - **Requirements**: Must have `<form id="profileForm">` element
-- **Behavior**: Loads user profile and handles form submission
+- **Behavior**: Only initializes profile form, doesn't populate account data
 
 ```html
 <div data-protected="profile">
+  <!-- Just the profile form, no account data displays -->
   <form id="profileForm">
     <input type="text" id="fullName" placeholder="Full Name">
     <button type="submit">Save Profile</button>
