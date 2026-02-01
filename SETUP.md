@@ -118,19 +118,32 @@ Add this attribute to any element on pages that require authentication:
 ```
 
 ### Profiles Directory Page (`/people`)
+
+The profiles directory can be either public or protected based on the `data-protected` attribute:
+
+**For PUBLIC directory (no login required):**
 ```html
-<!-- Main container for profile cards -->
+<!-- No data-protected attribute = public view -->
 <div id="profilesList"></div>
-
-<!-- Optional: Loading state -->
 <div id="profilesLoading" style="display: none;">Loading profiles...</div>
-
-<!-- Optional: Empty state -->
 <div id="profilesEmpty" style="display: none;">No profiles found.</div>
-
-<!-- Optional: Error state -->
 <div id="profilesError" style="display: none;"></div>
 ```
+
+**For PROTECTED directory (login required):**
+```html
+<!-- Add data-protected to require authentication -->
+<div data-protected="true">
+  <div id="profilesList"></div>
+  <div id="profilesLoading" style="display: none;">Loading profiles...</div>
+  <div id="profilesEmpty" style="display: none;">No profiles found.</div>
+  <div id="profilesError" style="display: none;"></div>
+</div>
+```
+
+**Behavior:**
+- Without `data-protected`: Anyone can view profiles, only logged-in users see edit buttons
+- With `data-protected`: Requires login, full edit capabilities for own profile
 
 ## Supabase Setup Checklist
 
@@ -164,7 +177,8 @@ on public.profiles for update
 using (id = auth.uid());
 
 -- For Profiles Directory feature: Create RPC functions
--- (Run the SQL from sql/profiles-directory-functions.sql)
+-- Run the SQL from sql/profiles-directory.sql
+-- These functions work for both public and authenticated access
 ```
 
 ### 2. Authentication Settings

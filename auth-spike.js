@@ -22,7 +22,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "29/01/2026, 22:12:09"; // Added profiles directory feature
+const BUILD_VERSION = "01/02/2026, 22:28:53"; // Profiles directory now respects data-protected attribute
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -718,6 +718,9 @@ function initLessonProgressUI() {
  * Initialize profiles directory page
  * Shows all profiles with view/edit permissions demo
  * Only own profile can be edited
+ * Respects data-protected attribute:
+ * - With data-protected: requires login, full features
+ * - Without data-protected: public view, edit only if logged in
  */
 async function initProfilesDirectory() {
   // Only run on /people page
@@ -727,11 +730,25 @@ async function initProfilesDirectory() {
 
   if (hasDebugFlag()) console.log("[directory] Initializing profiles directory");
 
-  // Require authentication
-  const session = await requireAuthOrRedirect();
-  if (!session) return;
+  // Check if page has data-protected attribute
+  const protectedEl = document.querySelector("[data-protected]");
+  const isProtected = protectedEl !== null;
 
-  const currentUserId = session.user.id;
+  // Get current session (don't force redirect yet)
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  const currentUserId = session?.user?.id || null;
+
+  // If page is protected and no session, redirect to login
+  if (isProtected && !session) {
+    if (hasDebugFlag()) console.log("[directory] Page is protected, redirecting to login");
+    window.location.href = CONFIG.redirects.loginPage;
+    return;
+  }
+
+  if (hasDebugFlag()) {
+    console.log("[directory] Mode:", isProtected ? "protected" : "public");
+    console.log("[directory] User:", session ? "logged in" : "anonymous");
+  }
 
   // Get DOM elements
   const listEl = document.getElementById("profilesList");
@@ -748,8 +765,10 @@ async function initProfilesDirectory() {
   if (loadingEl) loadingEl.style.display = "";
 
   try {
-    // Fetch all profile cards using RPC
-    const { data: profiles, error } = await supabaseClient.rpc("list_profile_cards");
+    // Fetch profiles using public RPC (works for everyone)
+    if (hasDebugFlag()) console.log("[directory] Fetching profiles via public RPC");
+
+    const { data: profiles, error } = await supabaseClient.rpc("list_profile_cards_public");
 
     if (error) {
       console.error("[directory] Failed to load profiles:", error);
@@ -786,6 +805,9 @@ async function initProfilesDirectory() {
         const displayName = (profile.full_name || "").trim() || "(name not set)";
         const avatarUrl = profile.avatar_url || "";
 
+        // For public view without auth, don't show edit buttons at all
+        const showEditButton = session !== null;
+
         return `
           <div class="profile-card" data-profile-id="${profile.id}">
             <div class="profile-card__row">
@@ -800,18 +822,20 @@ async function initProfilesDirectory() {
               <button class="btn-view" data-action="view" data-profile-id="${profile.id}">
                 View
               </button>
-              ${isMe
-                ? `<button class="btn-edit" data-action="edit" data-profile-id="${profile.id}">
-                     Edit
-                   </button>`
-                : `<button class="btn-edit" data-action="edit" disabled title="You can only edit your own profile">
-                     Edit (Locked)
-                   </button>`
+              ${showEditButton
+                ? (isMe
+                  ? `<button class="btn-edit" data-action="edit" data-profile-id="${profile.id}">
+                       Edit
+                     </button>`
+                  : `<button class="btn-edit" data-action="edit" disabled title="You can only edit your own profile">
+                       Edit (Locked)
+                     </button>`)
+                : ''
               }
             </div>
 
             <!-- Inline edit form (hidden by default, only for current user) -->
-            ${isMe ? `
+            ${isMe && showEditButton ? `
               <div class="profile-card__edit" id="edit-form-${profile.id}" style="display: none; margin-top: 0.75rem;">
                 <label style="display: block; margin-bottom: 0.25rem;">Full name</label>
                 <input
@@ -955,7 +979,8 @@ async function initProfilesDirectory() {
       const avatarEl = document.getElementById("profileDetailAvatar");
 
       try {
-        const { data: profile, error } = await supabaseClient.rpc("get_profile_card", {
+        // Use public RPC function (works for both authenticated and anonymous)
+        const { data: profile, error } = await supabaseClient.rpc("get_profile_card_public", {
           target_id: profileId
         });
 
