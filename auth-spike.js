@@ -22,7 +22,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "01/02/2026, 23:12:03"; // Profiles directory now respects data-protected attribute
+const BUILD_VERSION = "01/02/2026, 23:13:42"; // Profiles directory now respects data-protected attribute
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================

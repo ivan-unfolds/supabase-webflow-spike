@@ -3,6 +3,47 @@
 -- Email addresses are never exposed to maintain privacy
 -- Edit permissions are handled separately via RLS on the profiles table
 
+-- Function: Get single profile (authenticated version - matches existing Supabase function)
+-- This function exists in production and requires authentication
+create or replace function public.get_profile_card(target_id uuid)
+returns table (
+  id uuid,
+  full_name text,
+  avatar_url text,
+  bio text,
+  location text,
+  company text,
+  role text,
+  website text,
+  updated_at timestamp with time zone
+)
+language plpgsql
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not authenticated';
+  end if;
+
+  return query
+  select
+    p.id,
+    p.full_name,
+    p.avatar_url,
+    p.bio,
+    p.location,
+    p.company,
+    p.role,
+    p.website,
+    p.updated_at
+  from public.profiles p
+  where p.id = target_id
+  limit 1;
+end;
+$$;
+
+-- Grant execute permission to authenticated users only
+grant execute on function public.get_profile_card(uuid) to authenticated;
+
 -- Function: List all profiles (public version - no auth required)
 create or replace function public.list_profile_cards_public()
 returns table (
@@ -14,7 +55,7 @@ returns table (
   company text,
   role text,
   website text,
-  updated_at timestamptz
+  updated_at timestamp with time zone
 )
 language plpgsql
 security definer
@@ -54,7 +95,7 @@ returns table (
   company text,
   role text,
   website text,
-  updated_at timestamptz
+  updated_at timestamp with time zone
 )
 language plpgsql
 security definer
@@ -90,6 +131,9 @@ grant execute on function public.get_profile_card_public(uuid) to anon;
 grant execute on function public.get_profile_card_public(uuid) to authenticated;
 
 -- Add comments for documentation
+comment on function public.get_profile_card(uuid) is
+'Authenticated version. Returns a single profile but requires user to be logged in. Used by authenticated pages.';
+
 comment on function public.list_profile_cards_public() is
 'Public version of list_profile_cards. Returns all profiles without requiring authentication. No emails exposed.';
 
