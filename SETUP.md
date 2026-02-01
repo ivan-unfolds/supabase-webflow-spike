@@ -148,41 +148,37 @@ The profiles directory can be either public or protected based on the `data-prot
 ## Supabase Setup Checklist
 
 ### 1. Database Schema
-Run this SQL in Supabase SQL Editor:
 
-```sql
--- Create profiles table
-create table if not exists public.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text,
-  full_name text,
-  avatar_url text,
-  updated_at timestamptz default now()
-);
+The SQL files are organized in the `sql/` directory:
 
--- Enable RLS
-alter table public.profiles enable row level security;
-
--- Create policies
-create policy "profiles_select_own"
-on public.profiles for select
-using (id = auth.uid());
-
-create policy "profiles_insert_own"
-on public.profiles for insert
-with check (id = auth.uid());
-
-create policy "profiles_update_own"
-on public.profiles for update
-using (id = auth.uid());
-
--- For Profiles Directory feature: Create RPC functions
--- Run the SQL from sql/profiles-directory.sql
--- These functions work for both public and authenticated access
-
--- Optional: Add extended profile fields and seed data
--- Run sql/add-profile-fields-and-seed.sql for bio, location, company, role, website fields
 ```
+sql/
+├── schema/      # Core tables and RLS (required)
+├── functions/   # RPC functions (required for features)
+└── seeds/       # Demo data (optional)
+```
+
+**Run in this order in Supabase SQL Editor:**
+
+1. **Schema setup** (required):
+   ```sql
+   -- Run each file in order:
+   sql/schema/01-profiles-table.sql
+   sql/schema/02-entitlements-table.sql
+   sql/schema/03-lesson-progress-table.sql
+   ```
+
+2. **Functions** (required for profiles directory):
+   ```sql
+   sql/functions/profiles-directory.sql
+   ```
+
+3. **Demo data** (optional):
+   ```sql
+   sql/seeds/demo-profiles.sql  -- Adds bio, location, company fields with sample data
+   ```
+
+See `sql/README.md` for detailed setup instructions.
 
 ### 2. Authentication Settings
 

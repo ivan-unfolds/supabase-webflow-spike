@@ -66,13 +66,14 @@ The main `auth-spike.js` file is organized into numbered sections:
 3. Hosted on GitHub Pages and loaded into Webflow via CDN
 4. Requires Supabase JS library loaded first
 
-### SQL Functions Location
+### SQL Organization
 
-All SQL functions are in `sql/` directory:
-- `profiles-directory.sql` - RPC functions for profiles directory (returns all profile fields including bio, location, company, role, website)
-- `add-profile-fields-and-seed.sql` - Adds extended profile fields and seeds with realistic demo data
+SQL files are organized by purpose in `sql/` directory:
+- `schema/` - Database tables and RLS policies (numbered for execution order)
+- `functions/` - RPC functions for features (e.g., profiles-directory.sql)
+- `seeds/` - Demo/test data (optional for development)
 
-These must be manually run in Supabase SQL editor.
+Run in order: schema → functions → seeds (optional). See `sql/README.md` for details.
 
 ### Testing & Debug
 

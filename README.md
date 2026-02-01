@@ -93,7 +93,9 @@ Features gracefully degrade based on authentication status rather than blocking 
 ├── auth-spike.js           # Main integration script
 ├── SETUP.md               # Webflow setup instructions
 ├── sql/
-│   └── profiles-directory.sql  # RPC functions for directory
+│   ├── schema/            # Database tables and RLS policies
+│   ├── functions/         # RPC functions for features
+│   └── seeds/             # Demo/test data
 └── docs/
     └── gating-system.md   # Page protection documentation
 ```
