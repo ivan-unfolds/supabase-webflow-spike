@@ -3,16 +3,18 @@
 
 -- Create profiles table
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid NOT NULL,
   email text,
   full_name text,
   avatar_url text,
+  updated_at timestamp with time zone DEFAULT now(),
   bio text,
   location text,
   website text,
   company text,
   role text,
-  updated_at timestamptz DEFAULT now()
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
 
 -- Enable Row Level Security

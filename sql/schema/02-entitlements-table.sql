@@ -2,11 +2,20 @@
 -- Tracks which courses/content users have access to
 
 CREATE TABLE IF NOT EXISTS public.entitlements (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
   course_slug text NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(user_id, course_slug)
+  access_level text NOT NULL DEFAULT 'member'::text,
+  starts_at timestamp with time zone,
+  ends_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  source text,
+  stripe_customer_id text,
+  stripe_checkout_session_id text,
+  stripe_payment_intent_id text,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT entitlements_pkey PRIMARY KEY (id),
+  CONSTRAINT entitlements_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- Enable Row Level Security

@@ -2,16 +2,17 @@
 -- Tracks user progress through lessons/courses
 
 CREATE TABLE IF NOT EXISTS public.lesson_progress (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  course_slug text,
-  module_slug text,
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  course_slug text NOT NULL,
+  module_slug text NOT NULL,
   lesson_slug text NOT NULL,
-  completed boolean DEFAULT false,
-  completed_at timestamptz,
-  last_viewed_at timestamptz,
-  updated_at timestamptz DEFAULT now(),
-  UNIQUE(user_id, lesson_slug)
+  completed boolean NOT NULL DEFAULT false,
+  completed_at timestamp with time zone,
+  last_viewed_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT lesson_progress_pkey PRIMARY KEY (id),
+  CONSTRAINT lesson_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 -- Enable Row Level Security
