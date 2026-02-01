@@ -46,16 +46,22 @@ Control access using the `data-protected` attribute:
 
 ## Profiles Directory
 
-The `/people` page can work in two modes:
+The `/people` page displays user profiles with expandable details and edit capabilities.
+
+### Features
+- **Expandable profile cards** - Click "View Details" to see bio, location, company, role, website
+- **Rich profile fields** - Supports bio, location, company, role, and website URLs
+- **Auth-aware UI** - Shows login/logout button based on authentication state
+- **Inline editing** - Edit all profile fields directly in the card (own profile only)
 
 ### Public Mode (no login required)
 ```html
 <!-- No data-protected attribute -->
 <div id="profilesList"></div>
 ```
-- Anyone can view profiles
-- Edit buttons only shown for logged-in users
-- Only own profile is editable
+- Anyone can view profiles and expand details
+- Login button shown at top
+- No edit buttons visible
 
 ### Protected Mode (login required)
 ```html
@@ -63,8 +69,9 @@ The `/people` page can work in two modes:
   <div id="profilesList"></div>
 </div>
 ```
-- Requires authentication
-- Full edit capabilities for own profile
+- Requires authentication to view
+- Logout button shown with user email
+- Edit button enabled for own profile
 
 ## Architecture Decisions
 

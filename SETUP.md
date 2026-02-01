@@ -179,6 +179,9 @@ using (id = auth.uid());
 -- For Profiles Directory feature: Create RPC functions
 -- Run the SQL from sql/profiles-directory.sql
 -- These functions work for both public and authenticated access
+
+-- Optional: Add extended profile fields and seed data
+-- Run sql/add-profile-fields-and-seed.sql for bio, location, company, role, website fields
 ```
 
 ### 2. Authentication Settings

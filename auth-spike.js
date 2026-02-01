@@ -22,7 +22,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "01/02/2026, 22:28:53"; // Profiles directory now respects data-protected attribute
+const BUILD_VERSION = "01/02/2026, 22:56:43"; // Profiles directory now respects data-protected attribute
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -756,6 +756,20 @@ async function initProfilesDirectory() {
   const errorEl = document.getElementById("profilesError");
   const loadingEl = document.getElementById("profilesLoading");
 
+  // Add auth button at the top of the list
+  const authButtonHtml = session
+    ? `<div style="text-align: right; margin-bottom: 1rem;">
+         <span style="margin-right: 1rem; color: #666;">Logged in as ${session.user.email}</span>
+         <button id="logoutBtnDirectory" style="padding: 0.5rem 1rem; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer;">
+           Logout
+         </button>
+       </div>`
+    : `<div style="text-align: right; margin-bottom: 1rem;">
+         <button id="loginBtnDirectory" style="padding: 0.5rem 1rem; background: #4299e1; color: white; border: none; border-radius: 6px; cursor: pointer;">
+           Login to Edit Profiles
+         </button>
+       </div>`;
+
   if (!listEl) {
     console.warn("[directory] #profilesList element not found on /people page");
     return;
@@ -792,18 +806,19 @@ async function initProfilesDirectory() {
     if (emptyEl) emptyEl.style.display = "none";
     if (errorEl) errorEl.style.display = "none";
 
-    // Hide profile detail initially (since nothing selected)
-    const detailEl = document.getElementById("profileDetail");
-    if (detailEl) detailEl.style.display = "none";
-
     if (hasDebugFlag()) console.log(`[directory] Loaded ${profiles.length} profiles`);
 
-    // Clear any placeholder content and render profile cards
-    listEl.innerHTML = profiles
+    // Clear any placeholder content and render with auth button
+    listEl.innerHTML = authButtonHtml + profiles
       .map((profile) => {
         const isMe = profile.id === currentUserId;
         const displayName = (profile.full_name || "").trim() || "(name not set)";
         const avatarUrl = profile.avatar_url || "";
+        const bio = profile.bio || "";
+        const location = profile.location || "";
+        const company = profile.company || "";
+        const role = profile.role || "";
+        const website = profile.website || "";
 
         // For public view without auth, don't show edit buttons at all
         const showEditButton = session !== null;
@@ -814,13 +829,24 @@ async function initProfilesDirectory() {
               ${avatarUrl ? `<img class="profile-card__avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(displayName)}'s avatar">` : ''}
               <div class="profile-card__meta">
                 <div class="profile-card__name">${escapeHtml(displayName)}</div>
+                ${role ? `<div style="color: #666; font-size: 0.875rem;">${escapeHtml(role)}</div>` : ''}
                 ${isMe ? `<div class="profile-card__badge">You</div>` : ''}
+              </div>
+            </div>
+
+            <!-- Expanded details (hidden by default) -->
+            <div class="profile-card__details" id="details-${profile.id}" style="display: none; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.1);">
+              ${bio ? `<p style="margin: 0 0 0.75rem 0; color: #444;">${escapeHtml(bio)}</p>` : ''}
+              <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.875rem; color: #666;">
+                ${location ? `<div>📍 ${escapeHtml(location)}</div>` : ''}
+                ${company ? `<div>🏢 ${escapeHtml(company)}</div>` : ''}
+                ${website ? `<div>🔗 <a href="${escapeAttr(website)}" target="_blank" rel="noopener" style="color: #4299e1;">${escapeHtml(website.replace(/^https?:\/\/(www\.)?/, ''))}</a></div>` : ''}
               </div>
             </div>
 
             <div class="profile-card__actions">
               <button class="btn-view" data-action="view" data-profile-id="${profile.id}">
-                View
+                View Details
               </button>
               ${showEditButton
                 ? (isMe
@@ -837,16 +863,40 @@ async function initProfilesDirectory() {
             <!-- Inline edit form (hidden by default, only for current user) -->
             ${isMe && showEditButton ? `
               <div class="profile-card__edit" id="edit-form-${profile.id}" style="display: none; margin-top: 0.75rem;">
-                <label style="display: block; margin-bottom: 0.25rem;">Full name</label>
-                <input
-                  type="text"
-                  id="edit-name-${profile.id}"
-                  class="edit-full-name"
-                  value="${escapeAttr(profile.full_name || '')}"
-                  style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px;"
-                />
-                <button class="btn-save" data-action="save" data-profile-id="${profile.id}" style="margin-top: 0.5rem;">
-                  Save
+                <div style="display: grid; gap: 0.75rem;">
+                  <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Full name</label>
+                    <input type="text" id="edit-name-${profile.id}" value="${escapeAttr(profile.full_name || '')}"
+                           style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px;" />
+                  </div>
+                  <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Bio</label>
+                    <textarea id="edit-bio-${profile.id}" rows="3"
+                              style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px; resize: vertical;">${escapeHtml(profile.bio || '')}</textarea>
+                  </div>
+                  <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Role</label>
+                    <input type="text" id="edit-role-${profile.id}" value="${escapeAttr(profile.role || '')}"
+                           style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px;" />
+                  </div>
+                  <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Company</label>
+                    <input type="text" id="edit-company-${profile.id}" value="${escapeAttr(profile.company || '')}"
+                           style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px;" />
+                  </div>
+                  <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Location</label>
+                    <input type="text" id="edit-location-${profile.id}" value="${escapeAttr(profile.location || '')}"
+                           style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px;" />
+                  </div>
+                  <div>
+                    <label style="display: block; margin-bottom: 0.25rem; font-size: 0.875rem;">Website</label>
+                    <input type="url" id="edit-website-${profile.id}" value="${escapeAttr(profile.website || '')}"
+                           style="width: 100%; padding: 0.5rem; border: 1px solid rgba(0,0,0,0.12); border-radius: 6px;" />
+                  </div>
+                </div>
+                <button class="btn-save" data-action="save" data-profile-id="${profile.id}" style="margin-top: 0.75rem;">
+                  Save All Changes
                 </button>
                 <span class="save-status" id="save-status-${profile.id}" style="margin-left: 0.5rem; opacity: 0.8;"></span>
               </div>
@@ -856,13 +906,26 @@ async function initProfilesDirectory() {
       })
       .join("");
 
-    // Attach event handlers using delegation
+    // Attach event handlers using delegation (includes auth buttons)
     listEl.addEventListener("click", handleDirectoryClick);
 
     async function handleDirectoryClick(e) {
-      const button = e.target.closest("button[data-action]");
+      const button = e.target.closest("button");
       if (!button) return;
 
+      // Handle auth buttons
+      if (button.id === "loginBtnDirectory") {
+        window.location.href = CONFIG.redirects.loginPage;
+        return;
+      }
+
+      if (button.id === "logoutBtnDirectory") {
+        await supabaseClient.auth.signOut();
+        window.location.reload();
+        return;
+      }
+
+      // Handle profile action buttons
       const action = button.getAttribute("data-action");
       const profileId = button.getAttribute("data-profile-id");
 
@@ -872,7 +935,7 @@ async function initProfilesDirectory() {
 
       switch (action) {
         case "view":
-          await viewProfileDetails(profileId);
+          toggleProfileDetails(profileId);
           break;
 
         case "edit":
@@ -887,6 +950,23 @@ async function initProfilesDirectory() {
           if (!isMe) return;
           await saveProfileChanges(profileId);
           break;
+      }
+    }
+
+    /**
+     * Toggle expanded profile details
+     */
+    function toggleProfileDetails(profileId) {
+      const detailsEl = document.getElementById(`details-${profileId}`);
+      const viewBtn = document.querySelector(`button[data-action="view"][data-profile-id="${profileId}"]`);
+
+      if (detailsEl) {
+        const isVisible = detailsEl.style.display !== "none";
+        detailsEl.style.display = isVisible ? "none" : "";
+
+        if (viewBtn) {
+          viewBtn.textContent = isVisible ? "View Details" : "Hide Details";
+        }
       }
     }
 
@@ -911,11 +991,24 @@ async function initProfilesDirectory() {
      */
     async function saveProfileChanges(profileId) {
       const nameInput = document.getElementById(`edit-name-${profileId}`);
+      const bioInput = document.getElementById(`edit-bio-${profileId}`);
+      const roleInput = document.getElementById(`edit-role-${profileId}`);
+      const companyInput = document.getElementById(`edit-company-${profileId}`);
+      const locationInput = document.getElementById(`edit-location-${profileId}`);
+      const websiteInput = document.getElementById(`edit-website-${profileId}`);
       const statusEl = document.getElementById(`save-status-${profileId}`);
 
       if (!nameInput) return;
 
-      const newName = nameInput.value.trim();
+      const updates = {
+        full_name: nameInput.value.trim(),
+        bio: bioInput?.value.trim() || null,
+        role: roleInput?.value.trim() || null,
+        company: companyInput?.value.trim() || null,
+        location: locationInput?.value.trim() || null,
+        website: websiteInput?.value.trim() || null,
+        updated_at: new Date().toISOString()
+      };
 
       // Show saving state
       if (statusEl) {
@@ -927,10 +1020,7 @@ async function initProfilesDirectory() {
         // Update profile using existing RLS
         const { error } = await supabaseClient
           .from("profiles")
-          .update({
-            full_name: newName,
-            updated_at: new Date().toISOString()
-          })
+          .update(updates)
           .eq("id", profileId);
 
         if (error) throw error;
@@ -940,7 +1030,27 @@ async function initProfilesDirectory() {
         if (card) {
           const nameEl = card.querySelector(".profile-card__name");
           if (nameEl) {
-            nameEl.textContent = newName || "(name not set)";
+            nameEl.textContent = updates.full_name || "(name not set)";
+          }
+
+          // Update role display if visible
+          const roleDisplay = card.querySelector(".profile-card__meta > div:nth-child(2)");
+          if (roleDisplay && updates.role) {
+            roleDisplay.textContent = updates.role;
+          }
+
+          // Update details section if it exists
+          const detailsEl = document.getElementById(`details-${profileId}`);
+          if (detailsEl) {
+            // Re-render the details section with new data
+            detailsEl.innerHTML = `
+              ${updates.bio ? `<p style="margin: 0 0 0.75rem 0; color: #444;">${escapeHtml(updates.bio)}</p>` : ''}
+              <div style="display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.875rem; color: #666;">
+                ${updates.location ? `<div>📍 ${escapeHtml(updates.location)}</div>` : ''}
+                ${updates.company ? `<div>🏢 ${escapeHtml(updates.company)}</div>` : ''}
+                ${updates.website ? `<div>🔗 <a href="${escapeAttr(updates.website)}" target="_blank" rel="noopener" style="color: #4299e1;">${escapeHtml(updates.website.replace(/^https?:\/\/(www\.)?/, ''))}</a></div>` : ''}
+              </div>
+            `;
           }
         }
 
@@ -968,55 +1078,6 @@ async function initProfilesDirectory() {
       }
     }
 
-    /**
-     * View detailed profile using the profileDetail section
-     */
-    async function viewProfileDetails(profileId) {
-      if (hasDebugFlag()) console.log("[directory] Viewing profile:", profileId);
-
-      const detailEl = document.getElementById("profileDetail");
-      const nameEl = document.getElementById("profileDetailName");
-      const avatarEl = document.getElementById("profileDetailAvatar");
-
-      try {
-        // Use public RPC function (works for both authenticated and anonymous)
-        const { data: profile, error } = await supabaseClient.rpc("get_profile_card_public", {
-          target_id: profileId
-        });
-
-        if (error) throw error;
-
-        if (profile && profile.length > 0) {
-          const p = profile[0];
-
-          // Update detail section
-          if (detailEl) {
-            detailEl.style.display = "";
-
-            if (nameEl) {
-              nameEl.textContent = p.full_name || "(name not set)";
-            }
-
-            if (avatarEl) {
-              if (p.avatar_url) {
-                avatarEl.src = p.avatar_url;
-                avatarEl.alt = `${p.full_name || "User"}'s avatar`;
-              } else {
-                // Keep placeholder image if no avatar
-                avatarEl.src = "https://cdn.prod.website-files.com/plugins/Basic/assets/placeholder.60f9b1840c.svg";
-                avatarEl.alt = "No avatar";
-              }
-            }
-          }
-
-          if (hasDebugFlag()) console.log("[directory] Profile details displayed:", p);
-        }
-      } catch (error) {
-        console.error("[directory] Failed to load profile details:", error);
-        if (nameEl) nameEl.textContent = "Error loading profile";
-        showFeedback("Could not load profile details", true);
-      }
-    }
 
   } catch (error) {
     // Hide loading

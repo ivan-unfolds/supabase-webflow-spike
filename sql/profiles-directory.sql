@@ -9,6 +9,11 @@ returns table (
   id uuid,
   full_name text,
   avatar_url text,
+  bio text,
+  location text,
+  company text,
+  role text,
+  website text,
   updated_at timestamptz
 )
 language plpgsql
@@ -23,6 +28,11 @@ begin
     p.id,
     p.full_name,
     p.avatar_url,
+    p.bio,
+    p.location,
+    p.company,
+    p.role,
+    p.website,
     p.updated_at
   from public.profiles p
   order by p.updated_at desc nulls last;
@@ -39,6 +49,11 @@ returns table (
   id uuid,
   full_name text,
   avatar_url text,
+  bio text,
+  location text,
+  company text,
+  role text,
+  website text,
   updated_at timestamptz
 )
 language plpgsql
@@ -58,6 +73,11 @@ begin
     p.id,
     p.full_name,
     p.avatar_url,
+    p.bio,
+    p.location,
+    p.company,
+    p.role,
+    p.website,
     p.updated_at
   from public.profiles p
   where p.id = target_id
