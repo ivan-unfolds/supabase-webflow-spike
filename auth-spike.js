@@ -22,7 +22,7 @@
  */
 
 // Build timestamp - UPDATE THIS WITH EACH COMMIT
-const BUILD_VERSION = "01/02/2026, 23:13:42"; // Profiles directory now respects data-protected attribute
+const BUILD_VERSION = "01/02/2026, 23:28:40"; // Profiles directory now respects data-protected attribute
 console.log(`[auth-spike] loaded - Version: ${BUILD_VERSION}`);
 
 // ============================================================================
@@ -782,11 +782,21 @@ async function initProfilesDirectory() {
     // Fetch profiles using public RPC (works for everyone)
     if (hasDebugFlag()) console.log("[directory] Fetching profiles via public RPC");
 
-    const { data: profiles, error } = await supabaseClient.rpc("list_profile_cards_public");
+    let { data: profiles, error } = await supabaseClient.rpc("list_profile_cards_public");
 
     if (error) {
       console.error("[directory] Failed to load profiles:", error);
       throw error;
+    }
+
+    // Sort profiles to show logged-in user first
+    if (currentUserId && profiles && profiles.length > 0) {
+      profiles.sort((a, b) => {
+        if (a.id === currentUserId) return -1;
+        if (b.id === currentUserId) return 1;
+        return 0; // maintain existing order for others
+      });
+      if (hasDebugFlag()) console.log("[directory] Sorted profiles to show current user first");
     }
 
     // Hide loading
